@@ -61,6 +61,20 @@ export async function holeBuecher(db: SQLiteDatabase): Promise<BuchZeile[]> {
   );
 }
 
+export interface KapitelKurz {
+  titel: string;
+  start_sek: number;
+  end_sek: number;
+}
+
+// Die Kapitel eines Buches, in der richtigen Reihenfolge.
+export async function holeKapitel(db: SQLiteDatabase, buchId: number): Promise<KapitelKurz[]> {
+  return db.getAllAsync<KapitelKurz>(
+    'SELECT titel, start_sek, end_sek FROM kapitel WHERE buch_id = ? ORDER BY nummer',
+    [buchId],
+  );
+}
+
 export async function holeBekannteDateien(db: SQLiteDatabase): Promise<Set<string>> {
   const zeilen = await db.getAllAsync<{ datei_uri: string }>('SELECT datei_uri FROM buch');
   return new Set(zeilen.map((z) => z.datei_uri));

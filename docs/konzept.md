@@ -38,7 +38,7 @@ Ich nutze sie erstmal nur alleine und würde sie dann freunden zur verfügung st
 - **Navigation in der Bibliothek:** Suche und Sortierung (z. B. nach Titel oder zuletzt gehört).
 - **Abspielen:** Play, Pause, Fortschrittsbalken.
 - **Spulen:** 15 Sekunden vor und 15 Sekunden zurück.
-- **Tempo:** Von 0,5× bis 3×, in Schritten von 0,5 (also 0,5 / 1 / 1,5 / 2 / 2,5 / 3).
+- **Tempo:** Von 0,5× bis 2×, in Schritten von 0,5 (also 0,5 / 1 / 1,5 / 2). Begrenzt auf 2×, weil Android laut Expo-Doku nicht schneller geht (Entscheidung 2026-11-16, vorher 3×).
 - **Kapitel:** Kapitelliste anzeigen, direkt zu einem Kapitel springen, nächstes und vorheriges Kapitel.
 - **Position merken:** Die App speichert, wo du aufgehört hast, und setzt beim nächsten Start dort fort.
 - **Hintergrund und Sperrbildschirm:** Das Hörbuch läuft weiter, wenn das Handy gesperrt ist. Steuerung über den Sperrbildschirm.
@@ -56,7 +56,7 @@ Ich nutze sie erstmal nur alleine und würde sie dann freunden zur verfügung st
 - **Buch-Details:** Cover, Infos, Kapitelliste und ein Knopf „Weiter hören“.
 - **Player:** Großes Cover, Steuerung, Tempo, aktuelles Kapitel.
 - **Mini-Player:** Eine schmale Leiste unten. Sie zeigt das laufende Buch, auch wenn du in der Bibliothek bist.
-- **Einstellungen:** Standard-Tempo und Spulzeiten.
+- **Einstellungen:** Standard-Tempo und Spulzeiten (folgen in Schritt 5). Schon da: Akzentfarbe (Blau, Türkis, Grün, Orange, Rosa). Erreichbar über den Reiter und über das Zahnrad im Player.
 - **Navigation:** Untere Leiste mit den Reitern „Bibliothek“ und „Einstellungen“.
 
 ### 5. Inhalte & Datenmodell
@@ -93,7 +93,7 @@ Die App speichert Daten in Tabellen (ähnlich wie eine Excel-Tabelle). Jede Zeil
 ### 9. Umsetzungsreihenfolge
 
 1. ✅ **Grundgerüst und Bibliothek** (Kacheln, Cover, Suche, Sortierung, Ordner einlesen). Gebaut 2026-11-16, Plan: `docs/plan-schritt-1.md`. Auf dem Handy: Bücher werden angezeigt. Tippen auf ein Buch hat noch keine Funktion (kommt in Schritt 2/3).
-2. **Player:** Abspielen, Pause, Spulen (15 s), Tempo (0,5×–3×), Mini-Player. Plan folgt (`docs/plan-schritt-2.md`), dann Freigabe.
+2. **Player:** Abspielen, Pause, Spulen (15 s), Tempo (0,5×–3×), Mini-Player. Gebaut, Test auf dem Handy steht aus. Plan: `docs/plan-schritt-2.md`. Tempo auf 2× begrenzt (Android-Grenze laut Expo-Doku).
 3. **Kapitel:** Kapitelliste und Kapitelsprung. Buch-Detailseite mit Kapitelliste. Plan folgt.
 4. **Fortschritt merken, Hintergrund, Sperrbildschirm.** Plan folgt. Ab hier braucht es einen Development Build (siehe Übergabe).
 5. **Feinschliff:** Einstellungen (Spulzeiten, Tempo-Standard), Fortschritt auf den Kacheln, Design. Plan folgt.
@@ -120,7 +120,7 @@ Damit die Arbeit in einer neuen Sitzung (VS-Code-Extension) weitergeht, steht hi
 
 **Nächste Schritte:**
 1. Plan für Schritt 2 (`docs/plan-schritt-2.md`) schreiben und Emir zur Freigabe vorlegen. Erst danach bauen.
-2. Für Schritt 2 gelten diese Vorgaben aus dem Konzept: Spulen 15 s vor und zurück, Tempo 0,5×–3× in 0,5er-Schritten, dunkles Design.
+2. Für Schritt 2 gelten diese Vorgaben aus dem Konzept: Spulen 15 s vor und zurück, Tempo 0,5×–2× in 0,5er-Schritten (3× gestrichen, siehe Plan Schritt 2), dunkles Design.
 3. Hintergrund-Wiedergabe und Sperrbildschirm (Schritt 4) brauchen einen Development Build über EAS. Expo Go reicht dafür nicht. Vorher die passende Audio-Bibliothek in der aktuellen Expo-Doku prüfen (Regel: nie aus dem Gedächtnis).
 
 **Technische Hinweise aus Schritt 1:**
@@ -140,7 +140,7 @@ Damit die Arbeit in einer neuen Sitzung (VS-Code-Extension) weitergeht, steht hi
 
 4. ~~Tech-Stack~~ **Beantwortet:** Expo (React Native) ist bestätigt.
 
-5. ~~Spulzeiten und Tempo~~ **Beantwortet:** 15 Sekunden vor und zurück. Tempo von 0,5× bis 3× in 0,5er-Schritten.
+5. ~~Spulzeiten und Tempo~~ **Beantwortet:** 15 Sekunden vor und zurück. Tempo von 0,5× bis 2× in 0,5er-Schritten (vorher bis 3×, auf 2× begrenzt, weil Android nicht schneller geht).
 
 6. ~~Freunde später: Anzahl und Konten~~ **Beantwortet:** Kein Konto nötig. Jeder nutzt die App mit seinen eigenen Dateien.
 

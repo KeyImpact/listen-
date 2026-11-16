@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useNavigation } from 'expo-router';
+import { useNavigation, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 
 import { BuchKachel } from '@/components/buch-kachel';
+import { MINI_PLAYER_HOEHE } from '@/components/mini-player';
 import { farben } from '@/constants/farben';
 import { filtereBuecher, sortiereBuecher, type Sortierung } from '@/lib/bibliothek-logik';
 import { holeBuecher, holeEinstellung, setzeEinstellung, type BuchZeile } from '@/lib/datenbank';
 import { ordnerEinlesen } from '@/lib/einlesen';
 import { waehleOrdner } from '@/lib/ordner';
+import { useFarben } from '@/lib/farben-kontext';
+import { usePlayer } from '@/lib/player-kontext';
 
 const ORDNER_SCHLUESSEL = 'ordner_uri';
 
@@ -16,6 +19,9 @@ const ORDNER_SCHLUESSEL = 'ordner_uri';
 // Die Suche ist standardmäßig eingeklappt. Geöffnet wird sie über den Knopf „Suche“ oben rechts.
 export default function BibliothekScreen() {
   const db = useSQLiteContext();
+  const { oeffneBuch, buch: laufendesBuch } = usePlayer();
+  const f = useFarben();
+  const router = useRouter();
   const [buecher, setBuecher] = useState<BuchZeile[]>([]);
   const [ordnerUri, setOrdnerUri] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
@@ -116,7 +122,7 @@ export default function BibliothekScreen() {
                 setSucheOffen(!sucheOffen);
               }}
             >
-              <Text style={styles.kopfKnopfText}>{sucheOffen ? 'Schließen' : 'Suche'}</Text>
+              <Text style={[styles.kopfKnopfText, { color: f.akzent }]}>{sucheOffen ? 'Schließen' : 'Suche'}</Text>
             </Pressable>
           ) : null}
           {ordnerUri ? (
@@ -127,13 +133,13 @@ export default function BibliothekScreen() {
               disabled={laeuft}
               onPress={() => einlesen(ordnerUri)}
             >
-              <Text style={[styles.kopfKnopfText, laeuft && styles.knopfAus]}>Neu einlesen</Text>
+              <Text style={[styles.kopfKnopfText, { color: f.akzent }, laeuft && styles.knopfAus]}>Neu einlesen</Text>
             </Pressable>
           ) : null}
         </View>
       ),
     });
-  }, [navigation, buecher.length, sucheOffen, ordnerUri, laeuft, einlesen]);
+  }, [navigation, buecher.length, sucheOffen, ordnerUri, laeuft, einlesen, f.akzent]);
 
   const sichtbar = useMemo(
     () => sortiereBuecher(filtereBuecher(buecher, suche), sortierung),
@@ -168,8 +174,16 @@ export default function BibliothekScreen() {
         data={sichtbar}
         keyExtractor={(buch) => String(buch.id)}
         numColumns={2}
-        renderItem={({ item }) => <BuchKachel buch={item} />}
-        contentContainerStyle={styles.liste}
+        renderItem={({ item }) => (
+          <BuchKachel
+            buch={item}
+            onPress={() => {
+              // Tippen startet das Buch und öffnet den Player.
+              oeffneBuch(item).then(() => router.push('/player'));
+            }}
+          />
+        )}
+        contentContainerStyle={[styles.liste, laufendesBuch ? styles.listeMitMiniPlayer : null]}
         ListEmptyComponent={
           <LeerText
             ordnerGewaehlt={ordnerUri !== null}
@@ -282,6 +296,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 16,
     padding: 24,
+  },
+  // Platz unten, damit der Mini-Player die letzte Zeile nicht verdeckt.
+  listeMitMiniPlayer: {
+    paddingBottom: MINI_PLAYER_HOEHE + 24,
   },
   leer: {
     color: farben.textDezent,
