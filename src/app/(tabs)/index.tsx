@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useNavigation } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 
 import { BuchKachel } from '@/components/buch-kachel';
@@ -12,11 +13,13 @@ import { waehleOrdner } from '@/lib/ordner';
 const ORDNER_SCHLUESSEL = 'ordner_uri';
 
 // Die Startseite: alle Hörbücher als Kacheln, mit Suche und Sortierung.
+// Die Suche ist standardmäßig eingeklappt. Geöffnet wird sie über den Knopf „Suche“ oben rechts.
 export default function BibliothekScreen() {
   const db = useSQLiteContext();
   const [buecher, setBuecher] = useState<BuchZeile[]>([]);
   const [ordnerUri, setOrdnerUri] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
+  const [sucheOffen, setSucheOffen] = useState(false);
   const [sortierung, setSortierung] = useState<Sortierung>('titel');
   const [laeuft, setLaeuft] = useState(false);
   const [meldung, setMeldung] = useState<string | null>(null);
@@ -80,6 +83,58 @@ export default function BibliothekScreen() {
     await einlesen(uri);
   };
 
+  // Die Knöpfe oben rechts stehen in der Kopfleiste des Reiters, nicht im Bildschirm.
+  // Deshalb setzen wir die Optionen des Reiters neu, sobald sich etwas ändert, das die Knöpfe braucht.
+  const navigation = useNavigation();
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.kopfKnoepfe}>
+          {buecher.length > 0 ? (
+            <Pressable
+              style={styles.kopfKnopf}
+              hitSlop={8}
+              accessibilityLabel="Sortierung wählen"
+              onPress={() =>
+                Alert.alert('Sortieren nach', undefined, [
+                  { text: 'Titel A–Z', onPress: () => setSortierung('titel') },
+                  { text: 'Autor A–Z', onPress: () => setSortierung('autor') },
+                  { text: 'Abbrechen', style: 'cancel' },
+                ])
+              }
+            >
+              <Text style={styles.kopfKnopfText}>Sortieren</Text>
+            </Pressable>
+          ) : null}
+          {buecher.length > 0 ? (
+            <Pressable
+              style={styles.kopfKnopf}
+              hitSlop={8}
+              accessibilityLabel={sucheOffen ? 'Suche schließen' : 'Suche öffnen'}
+              onPress={() => {
+                if (sucheOffen) setSuche(''); // Beim Schließen die Suche leeren, sonst bleibt der Filter aktiv.
+                setSucheOffen(!sucheOffen);
+              }}
+            >
+              <Text style={styles.kopfKnopfText}>{sucheOffen ? 'Schließen' : 'Suche'}</Text>
+            </Pressable>
+          ) : null}
+          {ordnerUri ? (
+            <Pressable
+              style={styles.kopfKnopf}
+              hitSlop={8}
+              accessibilityLabel="Ordner neu einlesen"
+              disabled={laeuft}
+              onPress={() => einlesen(ordnerUri)}
+            >
+              <Text style={[styles.kopfKnopfText, laeuft && styles.knopfAus]}>Neu einlesen</Text>
+            </Pressable>
+          ) : null}
+        </View>
+      ),
+    });
+  }, [navigation, buecher.length, sucheOffen, ordnerUri, laeuft, einlesen]);
+
   const sichtbar = useMemo(
     () => sortiereBuecher(filtereBuecher(buecher, suche), sortierung),
     [buecher, suche, sortierung],
@@ -88,40 +143,18 @@ export default function BibliothekScreen() {
   return (
     <View style={styles.behaelter}>
       <View style={styles.kopf}>
-        <TextInput
-          style={styles.suche}
-          placeholder="Titel oder Autor suchen"
-          placeholderTextColor={farben.textDezent}
-          value={suche}
-          onChangeText={setSuche}
-          autoCorrect={false}
-          clearButtonMode="while-editing"
-        />
-        <View style={styles.zeileSortierung}>
-          <Auswahl
-            text="Titel A–Z"
-            aktiv={sortierung === 'titel'}
-            onPress={() => setSortierung('titel')}
+        {sucheOffen ? (
+          <TextInput
+            style={styles.suche}
+            placeholder="Titel oder Autor suchen"
+            placeholderTextColor={farben.textDezent}
+            value={suche}
+            onChangeText={setSuche}
+            autoCorrect={false}
+            autoFocus
+            clearButtonMode="while-editing"
           />
-          <Auswahl
-            text="Autor A–Z"
-            aktiv={sortierung === 'autor'}
-            onPress={() => setSortierung('autor')}
-          />
-        </View>
-        {ordnerUri ? (
-          <Pressable
-            style={[styles.knopf, laeuft && styles.knopfAus]}
-            onPress={() => einlesen(ordnerUri)}
-            disabled={laeuft}
-          >
-            <Text style={styles.knopfText}>Ordner neu einlesen</Text>
-          </Pressable>
-        ) : (
-          <Pressable style={styles.knopf} onPress={ordnerWaehlen} disabled={laeuft}>
-            <Text style={styles.knopfText}>Hörbuch-Ordner wählen</Text>
-          </Pressable>
-        )}
+        ) : null}
         {meldung ? <Text style={styles.meldung}>{meldung}</Text> : null}
         {fehlerListe.length > 0 ? (
           <Text style={styles.fehler}>
@@ -137,27 +170,50 @@ export default function BibliothekScreen() {
         numColumns={2}
         renderItem={({ item }) => <BuchKachel buch={item} />}
         contentContainerStyle={styles.liste}
-        ListEmptyComponent={<LeerText ordnerGewaehlt={ordnerUri !== null} suche={suche} />}
+        ListEmptyComponent={
+          <LeerText
+            ordnerGewaehlt={ordnerUri !== null}
+            suche={suche}
+            laeuft={laeuft}
+            onWaehlen={ordnerWaehlen}
+          />
+        }
       />
     </View>
   );
 }
 
-function LeerText({ ordnerGewaehlt, suche }: { ordnerGewaehlt: boolean; suche: string }) {
-  let text = 'Noch kein Ordner gewählt. Wähle den Ordner, in dem deine Hörbücher (M4B) liegen.';
-  if (ordnerGewaehlt && suche.trim().length > 0) {
-    text = `Keine Treffer für „${suche.trim()}“.`;
-  } else if (ordnerGewaehlt) {
-    text = 'Keine Hörbücher gefunden. Lies den Ordner neu ein, oder wähle einen anderen.';
+// Was steht im leeren Bildschirm? Ohne Ordner gibt es hier den Knopf zum Ordner wählen.
+function LeerText({
+  ordnerGewaehlt,
+  suche,
+  laeuft,
+  onWaehlen,
+}: {
+  ordnerGewaehlt: boolean;
+  suche: string;
+  laeuft: boolean;
+  onWaehlen: () => void;
+}) {
+  if (!ordnerGewaehlt) {
+    return (
+      <View style={styles.leerBehaelter}>
+        <Text style={styles.leer}>
+          Noch kein Ordner gewählt. Wähle den Ordner, in dem deine Hörbücher (M4B) liegen.
+        </Text>
+        <Pressable style={styles.knopf} onPress={onWaehlen} disabled={laeuft}>
+          <Text style={styles.knopfText}>Hörbuch-Ordner wählen</Text>
+        </Pressable>
+      </View>
+    );
   }
-  return <Text style={styles.leer}>{text}</Text>;
-}
-
-function Auswahl({ text, aktiv, onPress }: { text: string; aktiv: boolean; onPress: () => void }) {
+  if (suche.trim().length > 0) {
+    return <Text style={styles.leer}>{`Keine Treffer für „${suche.trim()}“.`}</Text>;
+  }
   return (
-    <Pressable style={[styles.auswahl, aktiv && styles.auswahlAktiv]} onPress={onPress}>
-      <Text style={[styles.auswahlText, aktiv && styles.auswahlTextAktiv]}>{text}</Text>
-    </Pressable>
+    <Text style={styles.leer}>
+      Keine Hörbücher gefunden. Lies den Ordner neu ein (oben rechts), oder wähle einen anderen.
+    </Text>
   );
 }
 
@@ -165,6 +221,21 @@ const styles = StyleSheet.create({
   behaelter: {
     flex: 1,
     backgroundColor: farben.hintergrund,
+  },
+  kopfKnoepfe: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    marginRight: 8,
+  },
+  kopfKnopf: {
+    paddingHorizontal: 8,
+    paddingVertical: 6,
+  },
+  kopfKnopfText: {
+    color: farben.akzent,
+    fontSize: 15,
+    fontWeight: '600',
   },
   kopf: {
     paddingHorizontal: 16,
@@ -180,31 +251,11 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     fontSize: 16,
   },
-  zeileSortierung: {
-    flexDirection: 'row',
-    gap: 8,
-  },
-  auswahl: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 16,
-    backgroundColor: farben.flaeche,
-  },
-  auswahlAktiv: {
-    backgroundColor: farben.akzent,
-  },
-  auswahlText: {
-    color: farben.textDezent,
-    fontSize: 14,
-  },
-  auswahlTextAktiv: {
-    color: farben.akzentText,
-    fontWeight: '600',
-  },
   knopf: {
     backgroundColor: farben.flaecheHell,
     borderRadius: 10,
     paddingVertical: 12,
+    paddingHorizontal: 24,
     alignItems: 'center',
   },
   knopfAus: {
@@ -226,6 +277,11 @@ const styles = StyleSheet.create({
   liste: {
     paddingHorizontal: 8,
     paddingBottom: 24,
+  },
+  leerBehaelter: {
+    alignItems: 'center',
+    gap: 16,
+    padding: 24,
   },
   leer: {
     color: farben.textDezent,

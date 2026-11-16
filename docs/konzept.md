@@ -52,7 +52,7 @@ Ich nutze sie erstmal nur alleine und würde sie dann freunden zur verfügung st
 
 ### 4. Bildschirme & Navigation
 
-- **Bibliothek (Startseite):** Kachelraster mit Covers, oben Suche und Sortierung.
+- **Bibliothek (Startseite):** Kachelraster mit Covers. Oben rechts in der Kopfleiste stehen die Knöpfe „Sortieren“ (Auswahl Titel oder Autor), „Suche“ (klappt die Suchleiste auf und zu) und „Neu einlesen“. „Hörbuch-Ordner wählen“ steht im leeren Bildschirm, solange noch kein Ordner gewählt ist. (Stand 2026-11-16, vor Schritt 2 geändert.)
 - **Buch-Details:** Cover, Infos, Kapitelliste und ein Knopf „Weiter hören“.
 - **Player:** Großes Cover, Steuerung, Tempo, aktuelles Kapitel.
 - **Mini-Player:** Eine schmale Leiste unten. Sie zeigt das laufende Buch, auch wenn du in der Bibliothek bist.
