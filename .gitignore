@@ -1,21 +1,56 @@
-# Abhängigkeiten und Build-Ausgaben
+# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+
+# dependencies
 node_modules/
+
+# Expo
 .expo/
 dist/
 web-build/
-android/
-ios/
+expo-env.d.ts
 
-# Umgebungsvariablen und Geheimnisse
-.env
-.env*.local
-*-firebase-adminsdk-*.json
+# Native
+.kotlin/
+*.orig.*
+*.jks
 *.p8
 *.p12
-*.jks
+*.key
+*.mobileprovision
+
+# Metro
+.metro-health-check*
+
+# debug
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+*.pem
+
+# local env files
+.env
+.env*.local
+
+# Geheimnisse: Schlüssel und Zertifikate nie ins Repo
+*-firebase-adminsdk-*.json
 *.keystore
 
-# System-Dateien
-.DS_Store
+# Windows
 Thumbs.db
 desktop.ini
+
+# Hörbuch-Testdateien (echte Bücher, nie ins Repo)
+testdaten/
+*.m4b
+
+# typescript
+*.tsbuildinfo
+
+example
+
+# generated native folders
+/ios
+/android

@@ -92,13 +92,43 @@ Die App speichert Daten in Tabellen (ähnlich wie eine Excel-Tabelle). Jede Zeil
 
 ### 9. Umsetzungsreihenfolge
 
-1. **Grundgerüst und Bibliothek** mit ein paar Testbüchern (Kacheln, Cover, Suche). Plan folgt.
-2. **Player:** Abspielen, Pause, Spulen, Tempo. Plan folgt.
-3. **Kapitel:** Kapitelliste und Kapitelsprung. Plan folgt.
-4. **Fortschritt merken, Hintergrund, Sperrbildschirm.** Plan folgt.
-5. **Feinschliff:** Sortierung, Einstellungen, Design. Plan folgt.
+1. ✅ **Grundgerüst und Bibliothek** (Kacheln, Cover, Suche, Sortierung, Ordner einlesen). Gebaut 2026-11-16, Plan: `docs/plan-schritt-1.md`. Auf dem Handy: Bücher werden angezeigt. Tippen auf ein Buch hat noch keine Funktion (kommt in Schritt 2/3).
+2. **Player:** Abspielen, Pause, Spulen (15 s), Tempo (0,5×–3×), Mini-Player. Plan folgt (`docs/plan-schritt-2.md`), dann Freigabe.
+3. **Kapitel:** Kapitelliste und Kapitelsprung. Buch-Detailseite mit Kapitelliste. Plan folgt.
+4. **Fortschritt merken, Hintergrund, Sperrbildschirm.** Plan folgt. Ab hier braucht es einen Development Build (siehe Übergabe).
+5. **Feinschliff:** Einstellungen (Spulzeiten, Tempo-Standard), Fortschritt auf den Kacheln, Design. Plan folgt.
 6. **Test auf deinem Handy** im Alltag.
 7. **Später:** Verteilung an Freunde, Lesezeichen, Schlaf-Timer, Statistik.
+
+## Übergabe (Stand 2026-11-16)
+
+Damit die Arbeit in einer neuen Sitzung (VS-Code-Extension) weitergeht, steht hier alles Wichtige.
+
+**Projekt:**
+- Ordner `C:\dev\listen`, Git-Branch `main`, Expo SDK 58, TypeScript, Expo Router.
+- Befehle: `npm start` (Entwicklungsserver, im VS-Code-Terminal starten, damit der QR-Code sichtbar ist), `npm test`, `npm run typecheck`, `npx eslint .`.
+- Hörbuch-Testdateien liegen in `testdaten/` (nicht im Repo). Die Tests lesen sie automatisch.
+
+**Was funktioniert (auf dem Handy bestätigt):**
+- Ordner über den Android-Systemdialog wählen, die Bücher werden mit Cover angezeigt.
+- Die Bücher sind nach einem Neustart noch da (Ordner-Erlaubnis bleibt).
+
+**Bekannte Lücken (nicht vergessen):**
+- Auf ein Buch tippen macht noch nichts. Das ist Schritt 2/3.
+- Der Fortschrittsbalken zeigt immer 0 %, bis Schritt 4.
+- Beim ersten Einlesen musste Emir „Ordner neu einlesen“ tippen. Die Ursache ist noch unklar. Prüfen, ob ein erster Durchlauf Bücher übersieht.
+
+**Nächste Schritte:**
+1. Plan für Schritt 2 (`docs/plan-schritt-2.md`) schreiben und Emir zur Freigabe vorlegen. Erst danach bauen.
+2. Für Schritt 2 gelten diese Vorgaben aus dem Konzept: Spulen 15 s vor und zurück, Tempo 0,5×–3× in 0,5er-Schritten, dunkles Design.
+3. Hintergrund-Wiedergabe und Sperrbildschirm (Schritt 4) brauchen einen Development Build über EAS. Expo Go reicht dafür nicht. Vorher die passende Audio-Bibliothek in der aktuellen Expo-Doku prüfen (Regel: nie aus dem Gedächtnis).
+
+**Technische Hinweise aus Schritt 1:**
+- M4B-Leser: `src/lib/m4b.ts`. Liest Kapitel aus `chpl` oder aus der Kapitelspur. Die Beispielbücher nutzen die Kapitelspur.
+- Die Kapitel sind schon in der Datenbank (Tabelle `kapitel`), aber noch nicht in der Oberfläche.
+- Datenbank: `src/lib/datenbank.ts` (Tabellen `buch`, `kapitel`, `einstellung`).
+- Ordnerzugriff unter Android: `src/lib/ordner.ts` (Storage Access Framework).
+- Expo-Doku für Version 58: `https://docs.expo.dev/versions/v58.0.0/` und `https://docs.expo.dev/llms.txt`.
 
 ## Offene Punkte
 
