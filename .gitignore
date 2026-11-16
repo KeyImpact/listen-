@@ -1,0 +1,21 @@
+# Abhängigkeiten und Build-Ausgaben
+node_modules/
+.expo/
+dist/
+web-build/
+android/
+ios/
+
+# Umgebungsvariablen und Geheimnisse
+.env
+.env*.local
+*-firebase-adminsdk-*.json
+*.p8
+*.p12
+*.jks
+*.keystore
+
+# System-Dateien
+.DS_Store
+Thumbs.db
+desktop.ini
