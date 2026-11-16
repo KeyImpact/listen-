@@ -24,33 +24,31 @@ Ich nutze sie erstmal nur alleine und würde sie dann freunden zur verfügung st
 
 - **Ziel:** Eine App zum Hören von Hörbüchern auf dem Handy. Sie soll Kapitel, Spulen, Tempo und Cover gut können.
 - **Phase 1:** Nur du, zum Testen im Alltag.
-- **Phase 2:** Danach ein kleiner Freundeskreis (Anzahl offen, siehe Offene Punkte).
+- **Phase 2:** Danach Freunde. Jeder installiert die App und hört seine eigenen Bücher vom eigenen Handy. Die App gibt keine Bücher weiter.
 
 ### 2. Nutzer & Rollen
 
-- **Version 1:** Ein Nutzer, du. Kein Login nötig.
-- **Später:** Freunde bekommen Zugang. Wie das geht (eigene Konten oder ein gemeinsamer Zugang), ist offen.
+- **Ein Nutzer pro Handy.** Kein Konto, kein Login. Die App arbeitet nur mit den Dateien auf dem Gerät.
 
 ### 3. Funktionen
 
-**Version 1 (Empfehlung):**
+**Version 1:**
 
 - **Bibliothek:** Alle Hörbücher als Kacheln mit Cover (Thumbnail = kleines Vorschaubild), Titel, Autor und Fortschritt.
 - **Navigation in der Bibliothek:** Suche und Sortierung (z. B. nach Titel oder zuletzt gehört).
 - **Abspielen:** Play, Pause, Fortschrittsbalken.
-- **Spulen:** Ein Stück vor und zurück, mit festen Sprungweiten (Werte offen).
-- **Tempo:** Einstellbar, z. B. von 0,5× bis 3×.
+- **Spulen:** 15 Sekunden vor und 15 Sekunden zurück.
+- **Tempo:** Von 0,5× bis 3×, in Schritten von 0,5 (also 0,5 / 1 / 1,5 / 2 / 2,5 / 3).
 - **Kapitel:** Kapitelliste anzeigen, direkt zu einem Kapitel springen, nächstes und vorheriges Kapitel.
 - **Position merken:** Die App speichert, wo du aufgehört hast, und setzt beim nächsten Start dort fort.
-- **Hintergrund und Sperrbildschirm:** Das Hörbuch läuft weiter, wenn das Handy gesperrt ist. Steuerung über den Sperrbildschirm. Ohne das ist eine App zum Hören kaum brauchbar.
+- **Hintergrund und Sperrbildschirm:** Das Hörbuch läuft weiter, wenn das Handy gesperrt ist. Steuerung über den Sperrbildschirm.
 
 **Später (nicht in Version 1):**
 
 - Lesezeichen mit Notiz
 - Schlaf-Timer
-- Offline-Download für Freunde
-- Zugang für Freunde (Konten, Teilen)
 - Hörstatistik
+- Verteilung an Freunde (z. B. über einen Store, Art noch offen)
 
 ### 4. Bildschirme & Navigation
 
@@ -69,19 +67,21 @@ Die App speichert Daten in Tabellen (ähnlich wie eine Excel-Tabelle). Jede Zeil
 - **Kapitel:** Nummer, Buch-Nummer (verweist auf das Buch), Titel, Startzeit, Endzeit
 - **Fortschritt:** Buch-Nummer, aktuelle Position in Sekunden, zuletzt gehört am, Tempo
 
-**Dateiformat (Empfehlung):** M4B. Das ist das übliche Format für Hörbücher und enthält die Kapitel gleich mit. MP3 sollte auch gehen, dann müssen Kapitel anders hinterlegt werden.
+**Hörbücher-Quelle:** Ein lokaler Ordner auf dem Smartphone. Die App liest die Dateien von dort ein.
+
+**Dateiformat:** Nur M4B. Das Format enthält die Kapitel direkt in der Datei.
 
 ### 6. Plattformen & Tech-Stack
 
-- **Plattform:** Handy, Android und iOS.
-- **Empfehlung:** Expo (React Native), wie bei Mishkat. Eine Codebasis für beide Systeme.
+- **Plattform:** Handy. Zuerst Android (Version 16), iOS bleibt im Konzept, wird aber noch nicht getestet.
+- **Tech-Stack:** Expo (React Native) ✅ bestätigt. Eine Codebasis für beide Systeme.
 - **Audio:** Die passende Audio-Bibliothek für Kapitel, Hintergrundwiedergabe und Sperrbildschirm prüfe ich vor Schritt 1 in der aktuellen Doku.
-- **Daten:** Version 1 nur auf dem Gerät. Ein Server ist nicht nötig.
-- **Später:** Supabase (wie bei Mishkat), falls Freunde ein gemeinsames Konto brauchen.
+- **Ordnerzugriff:** Die App bekommt Zugriff auf den Hörbuch-Ordner über die Dateiauswahl des Systems. Wie das auf Android und iOS genau aussieht, prüfen wir im Plan für Schritt 1.
+- **Daten:** Alles auf dem Gerät. Kein Server, kein Supabase nötig.
 
 ### 7. Design
 
-- **Empfehlung:** Dunkles Design als Standard. Es ist angenehmer beim Hören am Abend.
+- **Dunkles Design** als Standard. ✅ bestätigt.
 - **Bedienung:** Große Knöpfe, gut mit einer Hand zu erreichen.
 - **Farben und Schrift:** Offen, machen wir zusammen, sobald die Bibliothek steht.
 
@@ -89,7 +89,6 @@ Die App speichert Daten in Tabellen (ähnlich wie eine Excel-Tabelle). Jede Zeil
 
 - **Version 1:** Keine laufenden Kosten.
 - **Später, für den Store:** Apple kostet rund 99 US-Dollar pro Jahr. Google Play kostet einmalig 25 US-Dollar. Das brauchst du nur, wenn die App über den Store laufen soll.
-- **Wichtig:** Hörbücher dürfen nur mit passendem Nutzungsrecht weitergegeben werden. Das ist vor Phase 2 zu klären (siehe Offene Punkte).
 
 ### 9. Umsetzungsreihenfolge
 
@@ -99,27 +98,22 @@ Die App speichert Daten in Tabellen (ähnlich wie eine Excel-Tabelle). Jede Zeil
 4. **Fortschritt merken, Hintergrund, Sperrbildschirm.** Plan folgt.
 5. **Feinschliff:** Sortierung, Einstellungen, Design. Plan folgt.
 6. **Test auf deinem Handy** im Alltag.
-7. **Später:** Freunde-Zugang, Offline-Download und die übrigen Punkte aus „Später“.
+7. **Später:** Verteilung an Freunde, Lesezeichen, Schlaf-Timer, Statistik.
 
 ## Offene Punkte
 
-1. **Woher kommen die Hörbücher?** Empfehlung für Version 1: Du importierst Dateien, die du auf dem Handy hast. Andere Wege (eigener Server, Dienst) würden wir später prüfen.
-> (noch offen)
+1. ~~Welches Handy hast du?~~ **Beantwortet:** Android 16. Zuerst testen wir nur auf Android, iOS bleibt im Konzept.
 
-2. **Dateiformat:** Nur M4B, oder auch MP3? Empfehlung: M4B zuerst, MP3 falls nötig später.
-> (noch offen)
+2. ~~Woher kommen die Hörbücher?~~ **Beantwortet:** Aus einem lokalen Ordner auf dem Smartphone (siehe Abschnitt 5).
 
-3. **Tech-Stack:** Expo (React Native) bestätigen? Empfehlung: ja.
-> (noch offen)
+3. ~~Dateiformat~~ **Beantwortet:** Nur M4B.
 
-4. **Spulzeiten und Tempo:** Vorwärts 30 Sekunden, zurück 10 Sekunden, Tempo von 0,5× bis 3×? Das sind meine Vorschläge. Passt das?
-> (noch offen)
+4. ~~Tech-Stack~~ **Beantwortet:** Expo (React Native) ist bestätigt.
 
-5. **Freunde später:** Wie viele Personen ungefähr? Sollen sie eigene Konten mit Login haben, oder reicht ein gemeinsamer Zugang?
-> (noch offen)
+5. ~~Spulzeiten und Tempo~~ **Beantwortet:** 15 Sekunden vor und zurück. Tempo von 0,5× bis 3× in 0,5er-Schritten.
 
-6. **Weitergabe:** Darfst du die Hörbücher an Freunde weitergeben? Das hängt davon ab, wie du sie bekommen hast (gekauft, geliehen, andere Quelle). Ich bin kein Rechtsberater. Vor Phase 2 solltest du das klären.
-> (noch offen)
+6. ~~Freunde später: Anzahl und Konten~~ **Beantwortet:** Kein Konto nötig. Jeder nutzt die App mit seinen eigenen Dateien.
 
-7. **Design:** Dunkles Design als Standard, oder hell?
-> (noch offen)
+7. ~~Weitergabe der Bücher~~ **Nicht relevant für die App**, die App gibt keine Bücher weiter.
+
+8. ~~Design~~ **Beantwortet:** Dunkles Design.
