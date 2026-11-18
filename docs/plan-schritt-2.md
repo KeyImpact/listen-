@@ -1,6 +1,6 @@
 # Plan Schritt 2: Player
 
-Stand: 2026-11-16 · **Status: freigegeben und gebaut. Test auf dem Android-Handy steht aus.**
+Stand: 2026-11-18 · **Status: gebaut und auf dem Android-Handy getestet (Play, Pause, Spulen, Tempo, Zeitstrahl, Mini-Player).**
 
 ## Ziel
 
@@ -81,6 +81,8 @@ Noch nicht dabei: Kapitelliste (Schritt 3), Position speichern, Hintergrund und 
 - **Position:** Wie abgesprochen nicht gespeichert, ein Buch startet beim nächsten Mal von vorn (Schritt 4).
 - **Zeitstrahl pro Kapitel (Änderung nach Handy-Feedback):** Der Zeitstrahl zeigt das aktuelle Kapitel, nicht das ganze Buch. Die Zeiten zählen ab Kapitelstart. Antippen springt innerhalb des Kapitels. Hat ein Buch keine Kapitel, zeigt er das ganze Buch. Die Spul-Knöpfe ±15 s gehen weiter über Kapitelgrenzen hinweg.
 - **Layout des Players (Änderung nach Handy-Feedback):** Thumbnail oben und so groß wie möglich, volle Breite. Darunter nur Kapitelname, Zeitstrahl, dann kompakte Knöpfe. Titel, Autor und der Schließen-Knopf sind entfernt. Schließen geht über den Zurück-Knopf des Handys.
+- **Spulzeiten (Änderung 2026-11-18):** Die Spulzeit für − und + ist einstellbar: 15 s, 30 s oder 1 min. Die Auswahl steht unter dem Zahnrad. Das war eigentlich Schritt 5 und wurde vorgezogen.
+- **Zurück-Knopf entfernt (2026-11-18):** Zurück geht über die Geste oder den Zurück-Knopf des Handys. Der Home-Knopf liegt mittig in der Kopfleiste.
 
 ## Geprüft
 
@@ -90,6 +92,8 @@ Noch nicht dabei: Kapitelliste (Schritt 3), Position speichern, Hintergrund und 
 - Web-Screenshot: **nicht gelungen.** Der Browser zeigt eine leere Seite. Ein Fehler wurde nicht gefunden, die Ursache ist offen. Ob es am Test-Setup oder am Code liegt, ist unklar. Deshalb ist das Layout noch nicht visuell geprüft.
 
 ## Noch nicht geprüft (nur auf dem Handy möglich)
+
+_Stand 2026-11-18: Abspielen, Spulen und Tempo sind auf dem Handy bestätigt. Offen bleibt das Verhalten bei gesperrtem Handy (siehe Schritt 4)._
 
 - Abspielen der Dateien aus dem Android-Ordner
 - Spulen und Tempo im echten Abspielen

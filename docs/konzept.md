@@ -37,7 +37,7 @@ Ich nutze sie erstmal nur alleine und würde sie dann freunden zur verfügung st
 - **Bibliothek:** Alle Hörbücher als Kacheln mit Cover (Thumbnail = kleines Vorschaubild), Titel, Autor und Fortschritt.
 - **Navigation in der Bibliothek:** Suche und Sortierung (z. B. nach Titel oder zuletzt gehört).
 - **Abspielen:** Play, Pause, Fortschrittsbalken.
-- **Spulen:** 15 Sekunden vor und 15 Sekunden zurück.
+- **Spulen:** Standard 15 Sekunden vor und zurück. Einstellbar sind 15 s, 30 s oder 1 min, getrennt für − und + (Entscheidung 2026-11-18).
 - **Tempo:** Von 0,5× bis 2×, in Schritten von 0,5 (also 0,5 / 1 / 1,5 / 2). Begrenzt auf 2×, weil Android laut Expo-Doku nicht schneller geht (Entscheidung 2026-11-16, vorher 3×).
 - **Kapitel:** Kapitelliste anzeigen, direkt zu einem Kapitel springen, nächstes und vorheriges Kapitel.
 - **Position merken:** Die App speichert, wo du aufgehört hast, und setzt beim nächsten Start dort fort.
@@ -56,7 +56,7 @@ Ich nutze sie erstmal nur alleine und würde sie dann freunden zur verfügung st
 - **Buch-Details:** Cover, Infos, Kapitelliste und ein Knopf „Weiter hören“.
 - **Player:** Großes Cover, Steuerung, Tempo, aktuelles Kapitel.
 - **Mini-Player:** Eine schmale Leiste unten. Sie zeigt das laufende Buch, auch wenn du in der Bibliothek bist.
-- **Einstellungen:** Standard-Tempo und Spulzeiten (folgen in Schritt 5). Schon da: Akzentfarbe (Blau, Türkis, Grün, Orange, Rosa). Erreichbar über den Reiter und über das Zahnrad im Player.
+- **Einstellungen:** Spulzeiten für − und + sind schon da. Standard-Tempo folgt in Schritt 5. Schon da: Akzentfarbe (Blau, Türkis, Grün, Orange, Rosa). Erreichbar über den Reiter und über das Zahnrad im Player.
 - **Navigation:** Untere Leiste mit den Reitern „Bibliothek“ und „Einstellungen“.
 - **Einstieg (Entscheidung 2026-11-18):** Die App öffnet das zuletzt gehörte Buch im Player, pausiert, an der gemerkten Stelle. Ohne gemerktes Buch startet sie in der Bibliothek.
 - **Home-Knopf (Entscheidung 2026-11-18):** Oben Mitte in der Player-Kopfleiste. Führt zurück zur Bibliothek.
@@ -95,43 +95,48 @@ Die App speichert Daten in Tabellen (ähnlich wie eine Excel-Tabelle). Jede Zeil
 
 ### 9. Umsetzungsreihenfolge
 
-1. ✅ **Grundgerüst und Bibliothek** (Kacheln, Cover, Suche, Sortierung, Ordner einlesen). Gebaut 2026-11-16, Plan: `docs/plan-schritt-1.md`. Auf dem Handy: Bücher werden angezeigt. Tippen auf ein Buch hat noch keine Funktion (kommt in Schritt 2/3).
-2. **Player:** Abspielen, Pause, Spulen (15 s), Tempo (0,5×–3×), Mini-Player. Gebaut, Test auf dem Handy steht aus. Plan: `docs/plan-schritt-2.md`. Tempo auf 2× begrenzt (Android-Grenze laut Expo-Doku).
-3. **Kapitel:** Kapitelliste und Kapitelsprung. Buch-Detailseite mit Kapitelliste. Plan folgt.
-4. **Fortschritt merken, Hintergrund, Sperrbildschirm.** Plan folgt. Ab hier braucht es einen Development Build (siehe Übergabe).
-5. **Feinschliff:** Einstellungen (Spulzeiten, Tempo-Standard), Fortschritt auf den Kacheln, Design. Plan folgt.
-6. **Test auf deinem Handy** im Alltag.
+1. ✅ **Grundgerüst und Bibliothek** (Kacheln, Cover, Suche, Sortierung, Ordner einlesen). Gebaut 2026-11-16, auf dem Handy getestet. Plan: `docs/plan-schritt-1.md`.
+2. ✅ **Player** (Abspielen, Pause, Spulen, Tempo, Mini-Player). Gebaut und auf dem Handy getestet (2026-11-18). Plan: `docs/plan-schritt-2.md`. Tempo bis 2× (Android-Grenze laut Expo-Doku).
+3. 🟡 **Kapitel und Einstieg.** Kapitelsprung, Einstieg mit dem letzten Buch, Home-Knopf und gemerkte Stelle funktionieren und sind auf dem Handy getestet (2026-11-18). Offen: Gestaltung der Kapitelliste (Emir möchte die geplante Liste so nicht). Plan: `docs/plan-schritt-3.md`.
+4. ⏸ **Hintergrund und Sperrbildschirm.** Zurückgenommen (2026-11-18). Braucht einen neuen Build, weil die Berechtigung für den Hintergrunddienst im Dev-Build fehlt. Gewählt: expo-audio mit Standard-Steuerung. Plan: `docs/plan-schritt-4.md`.
+5. 🟡 **Feinschliff.** Spulzeiten sind schon fertig (2026-11-18, vorgezogen). Offen: Standard-Tempo, Fortschritt auf den Kacheln, Design.
+6. **Test auf deinem Handy** im Alltag, mit dem Preview-Build (kein Laptop nötig).
 7. **Später:** Verteilung an Freunde, Lesezeichen, Schlaf-Timer, Statistik.
 
-## Übergabe (Stand 2026-11-16)
+## Übergabe (Stand 2026-11-18)
 
-Damit die Arbeit in einer neuen Sitzung (VS-Code-Extension) weitergeht, steht hier alles Wichtige.
+Damit die Arbeit in einer neuen Sitzung weitergeht, steht hier alles Wichtige.
 
 **Projekt:**
-- Ordner `C:\dev\listen`, Git-Branch `main`, Expo SDK 58, TypeScript, Expo Router.
-- Befehle: `npm start` (Entwicklungsserver, im VS-Code-Terminal starten, damit der QR-Code sichtbar ist), `npm test`, `npm run typecheck`, `npx eslint .`.
+- Ordner `C:devlisten`, Git-Branch `main`, Expo SDK 58, TypeScript, Expo Router.
+- Befehle: `npm start` (Entwicklungsserver für den Dev-Build, im VS-Code-Terminal starten), `npm test`, `npm run typecheck`, `npx eslint .`.
 - Hörbuch-Testdateien liegen in `testdaten/` (nicht im Repo). Die Tests lesen sie automatisch.
+- EAS ist eingerichtet: Konto `keyimpact`, Projekt verknüpft (Projekt-ID in `app.json`). Builds nur im VS-Code-Terminal, wegen Anmeldung und Schlüssel-Abfrage.
 
 **Was funktioniert (auf dem Handy bestätigt):**
-- Ordner über den Android-Systemdialog wählen, die Bücher werden mit Cover angezeigt.
-- Die Bücher sind nach einem Neustart noch da (Ordner-Erlaubnis bleibt).
+- Ordner über den Android-Systemdialog wählen, Bücher mit Cover in der Bibliothek.
+- Buch öffnen, Play, Pause, Tempo, Spulen (Zeit einstellbar), Kapitel vor und zurück, Zeitstrahl des aktuellen Kapitels.
+- Die App startet im Player mit dem zuletzt gehörten Buch, pausiert an der gemerkten Stelle. Home-Knopf führt in die Bibliothek.
 
 **Bekannte Lücken (nicht vergessen):**
-- Auf ein Buch tippen macht noch nichts. Das ist Schritt 2/3.
-- Der Fortschrittsbalken zeigt immer 0 %, bis Schritt 4.
-- Beim ersten Einlesen musste Emir „Ordner neu einlesen“ tippen. Die Ursache ist noch unklar. Prüfen, ob ein erster Durchlauf Bücher übersieht.
+- **Hintergrund und Sperrbildschirm:** Nicht drin, siehe Schritt 4. Die Wiedergabe stoppt bei gesperrtem Handy.
+- **Kapitelliste:** Gestaltung offen. Die Detailseite `src/app/buch/[id].tsx` ist nicht fertig und noch nicht ins Menü eingebunden.
+- **Fortschrittsbalken auf den Kacheln:** zeigt noch 0 %, Schritt 5.
+- **Erstes Einlesen:** Beim ersten Mal musste man „Ordner neu einlesen“ tippen. Ursache unklar.
+- **`app.json`:** Der Plugin setzt die Berechtigung `RECORD_AUDIO` (Mikrofon). Das brauchen wir nicht. Vor dem nächsten Build auf `recordAudioAndroid: false` setzen.
+
+**Technische Hinweise:**
+- **Audio-Modus:** Kein `interruptionMode: 'doNotMix'`, das lässt den Start scheitern. Die Hintergrund-Einstellung nur mit neuem Build.
+- **Kapitelsprung:** Das Sprungziel bleibt angezeigt, bis die Wiedergabe es erreicht. Sonst springt die Anzeige kurz ins alte Kapitel.
+- **Gemerkte Stelle:** Tabelle `lesestand` (Stelle und Tempo pro Buch). Der Name `fortschritt` ist auf dem Handy schon anders belegt.
+- **Spulzeiten:** Tabelle `einstellung`, Schlüssel `spulzeit_zurueck` und `spulzeit_vor`.
+- **Builds:** Jede Code-Änderung braucht für den Preview-Build einen neuen Build. Mit dem Dev-Build genügt `npm start`, außer bei Änderungen an nativen Berechtigungen.
+- M4B-Leser: `src/lib/m4b.ts`. Datenbank: `src/lib/datenbank.ts`. Player: `src/lib/player-kontext.tsx`, reine Logik: `src/lib/player-logik.ts`.
 
 **Nächste Schritte:**
-1. Plan für Schritt 2 (`docs/plan-schritt-2.md`) schreiben und Emir zur Freigabe vorlegen. Erst danach bauen.
-2. Für Schritt 2 gelten diese Vorgaben aus dem Konzept: Spulen 15 s vor und zurück, Tempo 0,5×–2× in 0,5er-Schritten (3× gestrichen, siehe Plan Schritt 2), dunkles Design.
-3. Hintergrund-Wiedergabe und Sperrbildschirm (Schritt 4) brauchen einen Development Build über EAS. Expo Go reicht dafür nicht. Vorher die passende Audio-Bibliothek in der aktuellen Expo-Doku prüfen (Regel: nie aus dem Gedächtnis).
-
-**Technische Hinweise aus Schritt 1:**
-- M4B-Leser: `src/lib/m4b.ts`. Liest Kapitel aus `chpl` oder aus der Kapitelspur. Die Beispielbücher nutzen die Kapitelspur.
-- Die Kapitel sind schon in der Datenbank (Tabelle `kapitel`), aber noch nicht in der Oberfläche.
-- Datenbank: `src/lib/datenbank.ts` (Tabellen `buch`, `kapitel`, `einstellung`).
-- Ordnerzugriff unter Android: `src/lib/ordner.ts` (Storage Access Framework).
-- Expo-Doku für Version 58: `https://docs.expo.dev/versions/v58.0.0/` und `https://docs.expo.dev/llms.txt`.
+1. Preview-Build starten (`npx eas-cli@latest build --platform android --profile preview` im VS-Code-Terminal). Vorher `recordAudioAndroid: false` entscheiden.
+2. Entscheidung Kapitelliste: keine Liste (Empfehlung: nur ‹ und › im Player) oder Overlay.
+3. Schritt 4 mit neuem Build: erst nur Hintergrund, dann Sperrbildschirm.
 
 ## Offene Punkte
 

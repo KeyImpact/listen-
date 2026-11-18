@@ -1,6 +1,6 @@
 # Plan Schritt 3: Kapitel und Buch-Detailseite
 
-Stand: 2026-11-17 · **Status: freigegeben und gebaut (Typecheck, Lint, 40 Node-Tests grün). Handy-Test steht aus.**
+Stand: 2026-11-18 · **Status: gebaut. Auf dem Handy getestet: Kapitelsprung (weiter und zurück), Einstieg mit dem letzten Buch, Home-Knopf. Offen: Gestaltung der Kapitelliste (Emir möchte die geplante Liste so nicht).**
 
 ## Erweiterung (von Emir gewünscht, 2026-11-17)
 
@@ -43,6 +43,11 @@ Du tippst ein Buch an und siehst eine Seite mit Cover, Titel, Autor und allen Ka
 1. **Kachel öffnet die Detailseite.** Das passt zum Plan aus Schritt 2 (Entscheidung 2) und zum Konzept. *Empfehlung: so.* Alternative: Kachel startet das Buch wie bisher, die Kapitel gibt es nur im Player.
 2. **Kapitelliste nur auf der Detailseite, nicht im Player.** Der Player bleibt schlank. *Empfehlung: so.* Alternative: zusätzlich eine Liste im Player als Overlay (mehr Aufwand, doppelte Oberfläche).
 3. **Buch mit Kapiteln oder ohne.** Hat ein Buch keine Kapitel, zeigt die Detailseite nur Cover und Start-Knopf, keine leere Liste. *Empfehlung: so.*
+
+## Offen (2026-11-18)
+
+- **Kapitelliste:** Emir möchte die Kapitelliste auf der Detailseite so nicht. Wie es stattdessen aussehen soll, ist noch offen. Die Detailseite (`src/app/buch/[id].tsx`) ist deshalb nicht fertig.
+- **Kachel-Tipp:** Wie in der Erweiterung beschrieben, startet ein Tipp auf eine Kachel das Buch direkt im Player. Eine Detailseite gibt es nur, wenn die Kapitelliste kommt.
 
 ## Nicht in Schritt 3
 

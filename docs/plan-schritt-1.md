@@ -1,6 +1,6 @@
 # Plan Schritt 1: Grundgerüst und Bibliothek
 
-Stand: 2026-11-16 · **Status: freigegeben und gebaut. Test auf dem Android-Handy steht aus.**
+Stand: 2026-11-18 · **Status: gebaut und auf dem Android-Handy getestet (Bücher werden mit Cover angezeigt).**
 
 ## Ziel
 

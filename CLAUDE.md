@@ -8,18 +8,22 @@ Vor jeder Planung `docs/konzept.md` lesen.
 
 @../_wissen/expo-supabase.md
 
-## Stand (2026-11-16)
+## Stand (2026-11-18)
 
 - Konzept abgestimmt (`docs/konzept.md`).
-- Schritt 1 (Grundgerüst und Bibliothek): ✅ 2026-11-16, auf dem Android-Handy getestet (Bücher werden angezeigt).
-- Nächster Schritt: Schritt 2 (Player). Erst Plan `docs/plan-schritt-2.md` schreiben, dann Freigabe. Vollständige Übergabe: `docs/konzept.md`, Abschnitt „Übergabe“.
+- Schritt 1 (Bibliothek): ✅ auf dem Handy getestet.
+- Schritt 2 (Player): ✅ auf dem Handy getestet.
+- Schritt 3 (Kapitel, Einstieg, Home): funktioniert auf dem Handy. Kapitelliste-Gestaltung offen.
+- Schritt 4 (Hintergrund, Sperrbildschirm): zurückgenommen, braucht einen neuen Build.
+- Nächster Schritt: Preview-Build, dann Schritt 4. Vollständige Übergabe: `docs/konzept.md`, Abschnitt „Übergabe“.
 
 ## Befehle
 
 - `npm test` – Node-Tests (M4B-Leser, Suche, Sortierung)
 - `npm run typecheck` – TypeScript-Prüfung
 - `npx eslint .` – Lint (`npx expo lint` meldet hier einen Versionsfehler, obwohl ESLint installiert ist)
-- `npm start` – Entwicklungsserver für das Handy (Expo Go)
+- `npm start` – Entwicklungsserver für den Dev-Build auf dem Handy (nicht Expo Go)
+- `npx eas-cli@latest build --platform android --profile preview` – Preview-Build in der Cloud (im VS-Code-Terminal)
 
 ## Projektstruktur
 

@@ -1,6 +1,13 @@
 # Plan Schritt 4: Hintergrund, Sperrbildschirm und Benachrichtigung
 
-Stand: 2026-11-18 · **Status: Option A freigegeben und gebaut (Typecheck, Lint, Node-Tests grün). Handy-Test steht aus.**
+Stand: 2026-11-18 · **Status: zurückgenommen. Die Hintergrund-Wiedergabe braucht einen neuen Build. Umsetzung erst danach.**
+
+## Erfahrungen (2026-11-18)
+
+- **Gebaut und getestet, dann zurückgenommen.** Die Sperrbildschirm-Anbindung plus `shouldPlayInBackground` ließen den Play-Knopf umschalten, aber der Player gab keinen Ton. Zusätzlich hatte `interruptionMode: 'doNotMix'` in Schritt 3 den Start schon einmal scheitern lassen. Beides ist raus.
+- **Ursache vermutlich:** Die Berechtigung „Vordergrunddienst“ (FOREGROUND_SERVICE) fehlt im aktuellen Dev-Build. Der Expo-Audio-Plugin trägt sie beim Bauen ein. Das zeigt die Änderung in `app.json` (Berechtigungen), die beim `eas init` dazugekommen ist.
+- **Offen in `app.json`:** Der Plugin setzt außerdem `RECORD_AUDIO` (Mikrofon). Das brauchen wir nicht. Die Option `recordAudioAndroid: false` für den Plugin verhindert das.
+- **Nächster Schritt:** Preview-Build (siehe Übergabe). Danach Schritt 1 dieses Plans: nur die Hintergrund-Wiedergabe, testen. Dann Schritt 2: Sperrbildschirm.
 
 ## Entscheidung (2026-11-18)
 
