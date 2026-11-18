@@ -33,7 +33,9 @@ export default function RootLayout() {
                 headerShadowVisible: false,
                 headerStyle: { backgroundColor: farben.hintergrund },
                 headerTintColor: farben.text,
-                headerLeft: () => <ZurueckKnopf />,
+                headerBackVisible: false,
+                headerTitle: () => <HomeKnopf />,
+                headerTitleAlign: 'center',
                 headerRight: () => (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
                     <TempoKopf />
@@ -58,12 +60,12 @@ export default function RootLayout() {
   );
 }
 
-// Zurück-Knopf links in der Player-Kopfleiste.
-function ZurueckKnopf() {
+// Home-Knopf in der Mitte der Player-Kopfleiste. Führt zurück zur Bibliothek (alle Fenster darüber schließen).
+function HomeKnopf() {
   const router = useRouter();
   return (
-    <Pressable hitSlop={12} accessibilityLabel="Zurück" onPress={() => router.back()}>
-      <Text style={{ color: farben.text, fontSize: 16, fontWeight: '600' }}>Zurück</Text>
+    <Pressable hitSlop={12} accessibilityLabel="Home, zur Bibliothek" onPress={() => router.dismissAll()}>
+      <Text style={{ color: farben.text, fontSize: 16, fontWeight: '600' }}>⌂ Home</Text>
     </Pressable>
   );
 }

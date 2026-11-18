@@ -51,6 +51,13 @@ export interface KapitelBereich {
   end_sek: number;
 }
 
+// Wie genau ein Sprung an eine Kapitelgrenze sein muss, in Sekunden.
+export const KAPITEL_TOLERANZ_SEK = 1.5;
+// Länge eines Kapitels in Sekunden, nie negativ.
+export function kapitelLaenge(kapitel: { start_sek: number; end_sek: number }): number {
+  return Math.max(0, kapitel.end_sek - kapitel.start_sek);
+}
+
 // Das Kapitel, in dem gerade gespielt wird. Die Liste ist nach Startzeit sortiert.
 export function aktuellesKapitel(kapitel: KapitelBereich[], position: number): KapitelBereich | null {
   let treffer: KapitelBereich | null = null;
@@ -61,8 +68,14 @@ export function aktuellesKapitel(kapitel: KapitelBereich[], position: number): K
   return treffer;
 }
 
+// Ab so vielen Sekunden im Kapitel springt „zurück“ erst zum Kapitelanfang (statt ins Kapitel davor).
+export const ZURUECK_SCHWELLE_SEK = 3;
+
 // Startzeiten des vorherigen und des nächsten Kapitels, von der aktuellen Position aus gesehen.
-// null heißt: Es gibt kein solches Kapitel (am ersten oder letzten Kapitel).
+// null heißt: Es gibt kein solches Ziel.
+// zurueck: Mehr als ZURUECK_SCHWELLE_SEK im aktuellen Kapitel → dessen Anfang.
+//          Sonst das Kapitel davor. Ein zweiter Tipp geht dann ins Kapitel davor.
+// weiter:  Immer der Anfang des nächsten Kapitels.
 export function kapitelSprungZiele(
   kapitel: KapitelBereich[],
   position: number,
@@ -76,8 +89,15 @@ export function kapitelSprungZiele(
   if (idx < 0) {
     return { zurueck: null, weiter: kapitel.length > 0 ? kapitel[0].start_sek : null };
   }
+  const aktuellerStart = kapitel[idx].start_sek;
+  const zurueck =
+    position - aktuellerStart > ZURUECK_SCHWELLE_SEK
+      ? aktuellerStart
+      : idx > 0
+        ? kapitel[idx - 1].start_sek
+        : null;
   return {
-    zurueck: idx > 0 ? kapitel[idx - 1].start_sek : null,
+    zurueck,
     weiter: idx < kapitel.length - 1 ? kapitel[idx + 1].start_sek : null,
   };
 }

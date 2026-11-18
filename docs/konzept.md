@@ -58,6 +58,9 @@ Ich nutze sie erstmal nur alleine und würde sie dann freunden zur verfügung st
 - **Mini-Player:** Eine schmale Leiste unten. Sie zeigt das laufende Buch, auch wenn du in der Bibliothek bist.
 - **Einstellungen:** Standard-Tempo und Spulzeiten (folgen in Schritt 5). Schon da: Akzentfarbe (Blau, Türkis, Grün, Orange, Rosa). Erreichbar über den Reiter und über das Zahnrad im Player.
 - **Navigation:** Untere Leiste mit den Reitern „Bibliothek“ und „Einstellungen“.
+- **Einstieg (Entscheidung 2026-11-18):** Die App öffnet das zuletzt gehörte Buch im Player, pausiert, an der gemerkten Stelle. Ohne gemerktes Buch startet sie in der Bibliothek.
+- **Home-Knopf (Entscheidung 2026-11-18):** Oben Mitte in der Player-Kopfleiste. Führt zurück zur Bibliothek.
+- **Kapitelliste (offen):** Emir möchte die geplante Kapitelliste so nicht. Wie es stattdessen aussehen soll, ist noch offen.
 
 ### 5. Inhalte & Datenmodell
 

@@ -52,7 +52,77 @@ export async function schemaAnlegen(db: SQLiteDatabase): Promise<void> {
       schluessel TEXT PRIMARY KEY,
       wert TEXT NOT NULL
     );
+
+    -- Die gemerkte Stelle pro Buch. Ein Buch hat höchstens eine Zeile.
+    CREATE TABLE IF NOT EXISTS lesestand (
+      buch_id INTEGER PRIMARY KEY REFERENCES buch(id) ON DELETE CASCADE,
+      position REAL NOT NULL,
+      tempo REAL NOT NULL,
+      zuletzt_am TEXT NOT NULL
+    );
   `);
+}
+
+export async function holeBuch(db: SQLiteDatabase, buchId: number): Promise<BuchZeile | null> {
+  return db.getFirstAsync<BuchZeile>(
+    'SELECT id, datei_uri, titel, autor, sprecher, dauer_sek, cover_pfad FROM buch WHERE id = ?',
+    buchId,
+  );
+}
+
+export interface GemerkteStelle {
+  position: number;
+  tempo: number;
+}
+
+// Die gemerkte Stelle eines Buches, oder null, wenn es noch keine gibt.
+export async function holeFortschritt(db: SQLiteDatabase, buchId: number): Promise<GemerkteStelle | null> {
+  return db.getFirstAsync<GemerkteStelle>(
+    'SELECT position, tempo FROM lesestand WHERE buch_id = ?',
+    buchId,
+  );
+}
+
+// Speichert die Stelle. Gibt es schon eine Zeile, wird sie überschrieben.
+export async function speichereFortschritt(
+  db: SQLiteDatabase,
+  buchId: number,
+  position: number,
+  tempo: number,
+): Promise<void> {
+  await db.runAsync(
+    `INSERT INTO lesestand (buch_id, position, tempo, zuletzt_am) VALUES (?, ?, ?, ?)
+     ON CONFLICT(buch_id) DO UPDATE SET position = excluded.position, tempo = excluded.tempo, zuletzt_am = excluded.zuletzt_am`,
+    buchId,
+    position,
+    tempo,
+    new Date().toISOString(),
+  );
+}
+
+// Das Buch, das zuletzt gehört wurde, mit der gemerkten Stelle. null, wenn noch nichts gehört wurde.
+export async function holeLetzterStand(
+  db: SQLiteDatabase,
+): Promise<{ buch: BuchZeile; position: number; tempo: number } | null> {
+  const zeile = await db.getFirstAsync<BuchZeile & GemerkteStelle>(
+    `SELECT b.id, b.datei_uri, b.titel, b.autor, b.sprecher, b.dauer_sek, b.cover_pfad, f.position, f.tempo
+     FROM lesestand f JOIN buch b ON b.id = f.buch_id
+     ORDER BY f.zuletzt_am DESC LIMIT 1`,
+  );
+  if (!zeile) return null;
+  return {
+    buch: {
+      id: zeile.id,
+      datei_uri: zeile.datei_uri,
+      titel: zeile.titel,
+      autor: zeile.autor,
+      sprecher: zeile.sprecher,
+      dauer_sek: zeile.dauer_sek,
+      cover_pfad: zeile.cover_pfad,
+    },
+    position: zeile.position,
+    tempo: zeile.tempo,
+  };
 }
 
 export async function holeBuecher(db: SQLiteDatabase): Promise<BuchZeile[]> {

@@ -11,6 +11,7 @@ import {
   naechstesTempo,
   spulePosition,
   SPRUNG_SEK,
+  kapitelLaenge,
 } from '../src/lib/player-logik.ts';
 
 test('Spulen: 15 Sekunden vor und zurück', () => {
@@ -100,9 +101,13 @@ test('Kapitelsprung: vorheriges und nächstes Kapitel', () => {
     { titel: 'Zwei', start_sek: 100, end_sek: 250 },
     { titel: 'Drei', start_sek: 250, end_sek: 400 },
   ];
-  assert.deepEqual(kapitelSprungZiele(kapitel, 150), { zurueck: 0, weiter: 250 });
+  // Im Kapitel ‚Zwei‘ (ab 100), 50 s drin: zurück geht zum Anfang von Zwei, weiter zu Drei.
+  assert.deepEqual(kapitelSprungZiele(kapitel, 150), { zurueck: 100, weiter: 250 });
+  // 1 s nach dem Kapitelanfang: zurück geht ins Kapitel davor.
+  assert.deepEqual(kapitelSprungZiele(kapitel, 101), { zurueck: 0, weiter: 250 });
   assert.deepEqual(kapitelSprungZiele(kapitel, 0), { zurueck: null, weiter: 100 });
-  assert.deepEqual(kapitelSprungZiele(kapitel, 300), { zurueck: 100, weiter: null });
+  assert.deepEqual(kapitelSprungZiele(kapitel, 300), { zurueck: 250, weiter: null });
+  assert.deepEqual(kapitelSprungZiele(kapitel, 251), { zurueck: 100, weiter: null });
 });
 
 test('Kapitelsprung: ohne Kapitel gibt es keine Ziele', () => {
@@ -118,4 +123,9 @@ test('Fortschritt: Anteil zwischen 0 und 1', () => {
   assert.equal(fortschrittAnteil(300, 200), 1);
   assert.equal(fortschrittAnteil(-1, 200), 0);
   assert.equal(fortschrittAnteil(10, 0), 0);
+});
+
+test('Kapitellänge: Ende minus Anfang, nie negativ', () => {
+  assert.equal(kapitelLaenge({ start_sek: 100, end_sek: 400 }), 300);
+  assert.equal(kapitelLaenge({ start_sek: 400, end_sek: 100 }), 0);
 });

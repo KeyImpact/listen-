@@ -100,7 +100,9 @@ export default function PlayerScreen() {
         </View>
       ) : null}
 
+      {/* Zeiten links und rechts neben dem Balken, wie bei der Fortschrittsleiste oben. */}
       <View style={styles.zeitstrahl}>
+        <Text style={styles.zeit}>{formatiereZeit(kapitelPosition)}</Text>
         <Pressable
           style={styles.balkenBereich}
           onLayout={(e) => setBalkenBreite(e.nativeEvent.layout.width)}
@@ -114,10 +116,7 @@ export default function PlayerScreen() {
             <View style={[styles.fuellung, { width: `${anteil * 100}%` }]} />
           </View>
         </Pressable>
-        <View style={styles.zeitZeile}>
-          <Text style={styles.zeit}>{formatiereZeit(kapitelPosition)}</Text>
-          <Text style={styles.zeit}>{formatiereZeit(abschnitt.laenge)}</Text>
-        </View>
+        <Text style={styles.zeit}>{formatiereZeit(abschnitt.laenge)}</Text>
       </View>
 
       <View style={styles.steuerung}>
@@ -232,9 +231,12 @@ function gibStile(f: Palette) {
       marginTop: -3,
     },
     zeitstrahl: {
-      gap: 2,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: 10,
     },
     balkenBereich: {
+      flex: 1,
       paddingVertical: 8,
     },
     spur: {
@@ -247,13 +249,10 @@ function gibStile(f: Palette) {
       height: '100%',
       backgroundColor: f.akzent,
     },
-    zeitZeile: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-    },
     zeit: {
       color: f.textDezent,
       fontSize: 12,
+      minWidth: 40,
     },
     steuerung: {
       flexDirection: 'row',
