@@ -3,6 +3,13 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AKZENTE } from '@/constants/farben';
 import { useAkzentWahl, useFarben, useStile, type Palette } from '@/lib/farben-kontext';
+import { usePlayer, type SpulRichtung } from '@/lib/player-kontext';
+import { SPRUNG_OPTIONEN_SEK, formatiereSpulzeit } from '@/lib/player-logik';
+
+const SPUL_ZEILEN: { schluessel: SpulRichtung; name: string }[] = [
+  { schluessel: 'zurueck', name: '−' },
+  { schluessel: 'vor', name: '+' },
+];
 
 // Der Inhalt der Einstellungen. Wird im Reiter „Einstellungen“ und auf der Seite über das Zahnrad gezeigt.
 // Bisher gibt es nur die Akzentfarbe: Sie färbt Knöpfe, Balken und den aktiven Reiter.
@@ -11,11 +18,11 @@ export function EinstellungenInhalt() {
   const router = useRouter();
   const styles = useStile(gibStile);
   const { akzentSchluessel, setzeAkzent } = useAkzentWahl();
+  const { spulzeiten, setzeSpulzeit } = usePlayer();
 
   return (
     <View style={[styles.behaelter, { backgroundColor: f.hintergrund }]}>
       <Text style={styles.abschnitt}>Farben</Text>
-      <Text style={styles.hinweis}>Die Akzentfarbe gilt für Knöpfe, Balken und den aktiven Reiter.</Text>
 
       <View style={styles.liste}>
         {AKZENTE.map((a, i) => {
@@ -40,6 +47,35 @@ export function EinstellungenInhalt() {
           );
         })}
       </View>
+
+      <Text style={styles.abschnitt}>Spulen im Player</Text>
+
+      <View style={styles.liste}>
+        {SPUL_ZEILEN.map((zeile, i) => (
+          <View key={zeile.schluessel} style={[styles.spulZeile, i > 0 && styles.zeileTrenner]}>
+            <Text style={styles.spulName}>{zeile.name}</Text>
+            <View style={styles.chips}>
+              {SPRUNG_OPTIONEN_SEK.map((sek) => {
+                const aktiv = spulzeiten[zeile.schluessel] === sek;
+                return (
+                  <Pressable
+                    key={sek}
+                    style={[styles.chip, { backgroundColor: aktiv ? f.akzent : f.flaecheHell }]}
+                    onPress={() => setzeSpulzeit(zeile.schluessel, sek)}
+                    accessibilityRole="radio"
+                    accessibilityState={{ checked: aktiv }}
+                    accessibilityLabel={`${zeile.name} ${formatiereSpulzeit(sek)}`}
+                  >
+                    <Text style={[styles.chipText, { color: aktiv ? f.akzentText : f.text }]}>
+                      {formatiereSpulzeit(sek)}
+                    </Text>
+                  </Pressable>
+                );
+              })}
+            </View>
+          </View>
+        ))}
+      </View>
     </View>
   );
 }
@@ -58,11 +94,6 @@ function gibStile(f: Palette) {
       fontWeight: '700',
       textTransform: 'uppercase',
       marginTop: 8,
-    },
-    hinweis: {
-      color: f.textDezent,
-      fontSize: 13,
-      marginBottom: 4,
     },
     liste: {
       backgroundColor: f.flaeche,
@@ -93,6 +124,31 @@ function gibStile(f: Palette) {
     haken: {
       fontSize: 18,
       fontWeight: '700',
+    },
+    spulZeile: {
+      paddingHorizontal: 16,
+      paddingVertical: 14,
+      gap: 10,
+    },
+    spulName: {
+      color: f.text,
+      fontSize: 22,
+      fontWeight: '700',
+      textAlign: 'center',
+    },
+    chips: {
+      flexDirection: 'row',
+      gap: 8,
+    },
+    chip: {
+      flex: 1,
+      alignItems: 'center',
+      paddingVertical: 10,
+      borderRadius: 16,
+    },
+    chipText: {
+      fontSize: 14,
+      fontWeight: '600',
     },
   });
 }

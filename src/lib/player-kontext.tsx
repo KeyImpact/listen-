@@ -4,6 +4,8 @@ import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
 import { useSQLiteContext } from 'expo-sqlite';
 
 import {
+  holeEinstellung,
+  setzeEinstellung,
   holeFortschritt,
   holeKapitel,
   holeLetzterStand,
@@ -16,7 +18,19 @@ import {
   kapitelSprungZiele,
   naechstesTempo,
   spulePosition,
+  STANDARD_SPRUNG_SEK,
 } from '@/lib/player-logik';
+
+// Die Spulzeiten für die beiden Knöpfe: „zurueck“ für −, „vor“ für +.
+export type SpulRichtung = 'zurueck' | 'vor';
+export interface Spulzeiten {
+  zurueck: number;
+  vor: number;
+}
+const EINSTELLUNG_SPULZEIT: Record<SpulRichtung, string> = {
+  zurueck: 'spulzeit_zurueck',
+  vor: 'spulzeit_vor',
+};
 
 // Der Abschnitt ist das aktuelle Kapitel. Hat das Buch keine Kapitel, ist es das ganze Buch.
 // Der Zeitstrahl und das Antippen beziehen sich auf den Abschnitt.
@@ -50,6 +64,8 @@ interface PlayerWert {
   // Startzeiten des vorherigen und nächsten Kapitels, null wenn es keins gibt.
   kapitelSprung: { zurueck: number | null; weiter: number | null };
   tempoAendern: (richtung: 1 | -1) => void;
+  spulzeiten: Spulzeiten;
+  setzeSpulzeit: (richtung: SpulRichtung, sekunden: number) => void;
 }
 
 const PlayerKontext = createContext<PlayerWert | null>(null);
@@ -66,6 +82,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [sprungZiel, setSprungZielState] = useState<number | null>(null);
   // Play wurde gedrückt, während das Buch noch lädt. Dann zeigt die Anzeige schon „Pause“.
   const [ladeSpielen, setLadeSpielen] = useState(false);
+  const [spulzeiten, setSpulzeiten] = useState<Spulzeiten>({ zurueck: STANDARD_SPRUNG_SEK, vor: STANDARD_SPRUNG_SEK });
   const sprungZielRef = useRef<number | null>(null);
   // Setzt das Sprungziel und merkt es im Ref, damit der Status-Listener es ohne Verzögerung sieht.
   const sprungZeitRef = useRef(0);
@@ -220,6 +237,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     gestartet.current = true;
     void (async () => {
       try {
+        const zurueck = Number(await holeEinstellung(db, EINSTELLUNG_SPULZEIT.zurueck));
+        const vor = Number(await holeEinstellung(db, EINSTELLUNG_SPULZEIT.vor));
+        setSpulzeiten({
+          zurueck: zurueck > 0 ? zurueck : STANDARD_SPRUNG_SEK,
+          vor: vor > 0 ? vor : STANDARD_SPRUNG_SEK,
+        });
         const letzter = await holeLetzterStand(db);
         if (letzter) {
           await oeffneBuch(letzter.buch, { position: letzter.position, pausiert: true });
@@ -256,6 +279,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       sprungAusfuehren(sekunden);
     },
     [sprungAusfuehren],
+  );
+
+  // Speichert die Spulzeit für einen der beiden Knöpfe. Gilt sofort und bleibt beim nächsten Start erhalten.
+  const setzeSpulzeit = useCallback(
+    (richtung: SpulRichtung, sekunden: number) => {
+      setSpulzeiten((alt) => ({ ...alt, [richtung]: sekunden }));
+      void setzeEinstellung(db, EINSTELLUNG_SPULZEIT[richtung], String(sekunden)).catch(() => {
+        // Speichern ist nur Komfort. Die Auswahl gilt trotzdem für diese Sitzung.
+      });
+    },
+    [db],
   );
 
   const tempoAendern = useCallback((richtung: 1 | -1) => {
@@ -299,8 +333,10 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       springeZu,
       kapitelSprung,
       tempoAendern,
+      spulzeiten,
+      setzeSpulzeit,
     }),
-    [buch, abschnitt, effektivPosition, gesamtDauer, status.playing, ladeSpielen, tempo, oeffneBuch, umschalten, spulen, springeInAbschnitt, springeZu, kapitelSprung, tempoAendern],
+    [buch, abschnitt, effektivPosition, gesamtDauer, status.playing, ladeSpielen, tempo, oeffneBuch, umschalten, spulen, springeInAbschnitt, springeZu, kapitelSprung, tempoAendern, spulzeiten, setzeSpulzeit],
   );
 
   return <PlayerKontext.Provider value={wert}>{children}</PlayerKontext.Provider>;

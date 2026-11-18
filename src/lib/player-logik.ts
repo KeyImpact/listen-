@@ -2,6 +2,14 @@
 // Reine Funktionen, damit sie mit Node getestet werden können (siehe tests/player-logik.test.mts).
 
 export const SPRUNG_SEK = 15;
+// Auswahl für die Spulzeit in den Einstellungen: 15 Sekunden, 30 Sekunden oder 1 Minute.
+export const SPRUNG_OPTIONEN_SEK = [15, 30, 60] as const;
+export const STANDARD_SPRUNG_SEK = 15;
+
+// Anzeige einer Spulzeit, zum Beispiel „15 s“ oder „1 min“.
+export function formatiereSpulzeit(sekunden: number): string {
+  return sekunden < 60 ? `${sekunden} s` : `${sekunden / 60} min`;
+}
 export const TEMPO_MIN = 0.5;
 // Obergrenze 2×: Die Expo-Doku nennt für Android nur bis 2,0 (Entscheidung von Emir, 2026-11-16).
 export const TEMPO_MAX = 2;

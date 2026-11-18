@@ -5,7 +5,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { useStile, type Palette } from '@/lib/farben-kontext';
 import { usePlayer } from '@/lib/player-kontext';
-import { SPRUNG_SEK, formatiereZeit, fortschrittAnteil } from '@/lib/player-logik';
+import { formatiereSpulzeit, formatiereZeit, fortschrittAnteil } from '@/lib/player-logik';
 
 // Der Player-Bildschirm: Gesamt-Fortschritt, Thumbnail, darunter Kapitel, Zeitstrahl des Kapitels und die Knöpfe.
 // Die Kopfleiste mit Zurück und Zahnrad kommt aus dem Layout (src/app/_layout.tsx).
@@ -23,6 +23,7 @@ export default function PlayerScreen() {
     springeInAbschnitt,
     springeZu,
     kapitelSprung,
+    spulzeiten,
   } = usePlayer();
   const [balkenBreite, setBalkenBreite] = useState(0);
   const [zeigeZeit, setZeigeZeit] = useState(false);
@@ -120,8 +121,8 @@ export default function PlayerScreen() {
       </View>
 
       <View style={styles.steuerung}>
-        <Pressable style={styles.sprungKnopf} onPress={() => spulen(-SPRUNG_SEK)}>
-          <Text style={styles.sprungText}>−{SPRUNG_SEK} s</Text>
+        <Pressable style={styles.sprungKnopf} onPress={() => spulen(-spulzeiten.zurueck)}>
+          <Text style={styles.sprungText}>−{formatiereSpulzeit(spulzeiten.zurueck)}</Text>
         </Pressable>
         <Pressable
           style={styles.playKnopf}
@@ -130,8 +131,8 @@ export default function PlayerScreen() {
         >
           <Text style={styles.playText}>{spielt ? 'Pause' : 'Play'}</Text>
         </Pressable>
-        <Pressable style={styles.sprungKnopf} onPress={() => spulen(SPRUNG_SEK)}>
-          <Text style={styles.sprungText}>+{SPRUNG_SEK} s</Text>
+        <Pressable style={styles.sprungKnopf} onPress={() => spulen(spulzeiten.vor)}>
+          <Text style={styles.sprungText}>+{formatiereSpulzeit(spulzeiten.vor)}</Text>
         </Pressable>
       </View>
 
@@ -146,7 +147,7 @@ function gibStile(f: Palette) {
       backgroundColor: f.hintergrund,
       paddingHorizontal: 16,
       paddingTop: 12,
-      paddingBottom: 16,
+      paddingBottom: 40,
       gap: 12,
     },
     gesamt: {

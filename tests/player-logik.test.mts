@@ -12,6 +12,7 @@ import {
   spulePosition,
   SPRUNG_SEK,
   kapitelLaenge,
+  formatiereSpulzeit,
 } from '../src/lib/player-logik.ts';
 
 test('Spulen: 15 Sekunden vor und zurück', () => {
@@ -128,4 +129,10 @@ test('Fortschritt: Anteil zwischen 0 und 1', () => {
 test('Kapitellänge: Ende minus Anfang, nie negativ', () => {
   assert.equal(kapitelLaenge({ start_sek: 100, end_sek: 400 }), 300);
   assert.equal(kapitelLaenge({ start_sek: 400, end_sek: 100 }), 0);
+});
+
+test('Spulzeit-Anzeige: Sekunden unter einer Minute, sonst Minuten', () => {
+  assert.equal(formatiereSpulzeit(15), '15 s');
+  assert.equal(formatiereSpulzeit(30), '30 s');
+  assert.equal(formatiereSpulzeit(60), '1 min');
 });
