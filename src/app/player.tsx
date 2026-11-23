@@ -1,9 +1,12 @@
 import { useState } from 'react';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
+import { useHeaderHeight } from 'expo-router/react-navigation';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { PlayerHintergrund } from '@/components/player-hintergrund';
 import { StartStoppKnopf } from '@/components/start-stopp-knopf';
+import { useCoverFarben } from '@/lib/cover-thema';
 import { useStile, type Palette } from '@/lib/farben-kontext';
 import { usePlayer } from '@/lib/player-kontext';
 import { formatiereSpulzeit, formatiereZeit, fortschrittAnteil } from '@/lib/player-logik';
@@ -31,10 +34,15 @@ export default function PlayerScreen() {
   } = usePlayer();
   const [balkenBreite, setBalkenBreite] = useState(0);
   const [zeigeZeit, setZeigeZeit] = useState(false);
+  const hintergrund = usePlayer().hintergrund;
+  const coverUri = buch?.cover_pfad ?? null;
+  const farben = useCoverFarben(hintergrund === 'off' ? null : coverUri);
+  // Die Kopfleiste ist transparent und liegt über dem Inhalt. Darum rückt der Inhalt um ihre Höhe nach unten.
+  const kopfHoehe = useHeaderHeight();
 
   if (!buch) {
     return (
-      <View style={styles.behaelter}>
+      <View style={[styles.behaelter, { paddingTop: kopfHoehe + 12 }]}>
         <Text style={styles.leer}>Noch kein Buch gewählt. Tippe in der Bibliothek auf ein Buch.</Text>
         <Pressable style={styles.textKnopf} onPress={() => router.back()}>
           <Text style={styles.textKnopfText}>Zurück</Text>
@@ -51,7 +59,9 @@ export default function PlayerScreen() {
   const gesamtProzent = Math.round(fortschrittAnteil(position, dauer) * 100);
 
   return (
-    <View style={styles.behaelter}>
+    <View style={[styles.behaelter, { paddingTop: kopfHoehe + 12 }]}>
+      {/* Der Hintergrund liegt ganz unten, alles andere steht darüber. */}
+      <PlayerHintergrund coverUri={coverUri} farben={farben} />
       {/* Ein Tipp auf die Leiste oder die Zahl wechselt zwischen Prozent und Zeit. */}
       <Pressable style={styles.gesamt} onPress={() => setZeigeZeit(!zeigeZeit)}>
         {zeigeZeit ? <Text style={styles.gesamtZeit}>{formatiereZeit(position)}</Text> : null}

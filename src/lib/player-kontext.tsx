@@ -25,7 +25,15 @@ import {
   STANDARD_SPRUNG_SEK,
 } from '@/lib/player-logik';
 import { ausblendLautstaerke, kapitelEndeFuer, verlaengern } from '@/lib/schlaf-logik';
-import { SCHLAF_STOPP_FLAG } from '@/lib/wiedergabe-dienst';
+import { SCHLAF_STOPP_FLAG, startenMitRueckspruung } from '@/lib/wiedergabe-dienst';
+import {
+  ABDUNKEL_STANDARD,
+  HINTERGRUND_STANDARD,
+  type HintergrundModus,
+} from '@/lib/cover-thema-logik';
+
+const EINSTELLUNG_HINTERGRUND = 'player_hintergrund';
+const EINSTELLUNG_ABDUNKEL = 'player_abdunkel';
 
 // Die Spulzeiten für die beiden Knöpfe: „zurueck“ für −, „vor“ für +.
 export type SpulRichtung = 'zurueck' | 'vor';
@@ -92,6 +100,11 @@ interface PlayerWert {
   balkenWahl: string;
   balkenDicke: number;
   setzeBalkenDicke: (schluessel: string) => void;
+  // Hintergrund des Players: Modus (Standard, unscharf, Farbverlauf) und Abdunkelung (Anteil 0 bis 1).
+  hintergrund: HintergrundModus;
+  setzeHintergrund: (modus: HintergrundModus) => void;
+  abdunkel: number;
+  setzeAbdunkel: (wert: number) => void;
   // Sleep-Timer: Anzeige, Start (Minuten oder 'kapitel', null = aus) und Verlängern um Minuten.
   schlaf: SchlafAnzeige;
   hatKapitel: boolean;
@@ -175,6 +188,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     vor: STANDARD_AUSSEN_SEK,
   });
   const [balkenWahl, setBalkenWahl] = useState<string>(STANDARD_BALKEN);
+  const [hintergrund, setHintergrund] = useState<HintergrundModus>(HINTERGRUND_STANDARD);
+  const [abdunkel, setAbdunkel] = useState(ABDUNKEL_STANDARD);
 
   // Die Anzeige von Play/Pause folgt der Absicht, nicht jedem Zwischenzustand. Beim Springen meldet der Player
   // kurz „Buffering“. Dann bleibt die Anzeige, wie sie war (kein Flackern).
@@ -381,6 +396,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         });
         const balken = await holeEinstellung(db, EINSTELLUNG_BALKEN);
         if (balken) setBalkenWahl(balken);
+        // Hintergrund des Players. Nur bekannte Werte übernehmen, sonst gilt der Standard.
+        const gespeicherterModus = await holeEinstellung(db, EINSTELLUNG_HINTERGRUND);
+        if (gespeicherterModus === 'off' || gespeicherterModus === 'blur' || gespeicherterModus === 'gradient') {
+          setHintergrund(gespeicherterModus);
+        }
+        const gespeicherteAbdunkel = Number(await holeEinstellung(db, EINSTELLUNG_ABDUNKEL));
+        if (gespeicherteAbdunkel > 0 && gespeicherteAbdunkel < 1) setAbdunkel(gespeicherteAbdunkel);
         const letzter = await holeLetzterStand(db);
         if (letzter) {
           await oeffneBuch(letzter.buch, { position: letzter.position, pausiert: true });
@@ -413,7 +435,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       return;
     }
     if (aktuelles.current.spielt) void TrackPlayer.pause();
-    else void TrackPlayer.play();
+    else void startenMitRueckspruung();
   }, []);
 
   const spulen = useCallback(
@@ -457,6 +479,22 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     (richtung: SpulRichtung, sekunden: number) => {
       setAussenSek((alt) => ({ ...alt, [richtung]: sekunden }));
       void setzeEinstellung(db, EINSTELLUNG_AUSSEN_SEK[richtung], String(sekunden)).catch(() => {});
+    },
+    [db],
+  );
+
+  const setzeHintergrund = useCallback(
+    (modus: HintergrundModus) => {
+      setHintergrund(modus);
+      void setzeEinstellung(db, EINSTELLUNG_HINTERGRUND, modus).catch(() => {});
+    },
+    [db],
+  );
+
+  const setzeAbdunkel = useCallback(
+    (wert: number) => {
+      setAbdunkel(wert);
+      void setzeEinstellung(db, EINSTELLUNG_ABDUNKEL, String(wert)).catch(() => {});
     },
     [db],
   );
@@ -667,11 +705,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       balkenDicke: balkenDickeFuer(balkenWahl),
       setzeBalkenDicke,
       schlaf,
+      hintergrund,
+      setzeHintergrund,
+      abdunkel,
+      setzeAbdunkel,
       hatKapitel: kapitel.length > 0,
       setzeSchlaf,
       verlaengereSchlaf,
     }),
-    [buch, abschnitt, effektivPosition, gesamtDauer, spielt, ladeSpielen, tempo, oeffneBuch, umschalten, spulen, springeInAbschnitt, springeZu, kapitelSprung, tempoSetzen, spulzeiten, setzeSpulzeit, aussenAktiv, setzeAussenAktiv, aussenSek, setzeAussenSek, balkenWahl, setzeBalkenDicke, schlaf, kapitel, setzeSchlaf, verlaengereSchlaf],
+    [buch, abschnitt, effektivPosition, gesamtDauer, spielt, ladeSpielen, tempo, oeffneBuch, umschalten, spulen, springeInAbschnitt, springeZu, kapitelSprung, tempoSetzen, spulzeiten, setzeSpulzeit, aussenAktiv, setzeAussenAktiv, aussenSek, setzeAussenSek, balkenWahl, setzeBalkenDicke, schlaf, kapitel, setzeSchlaf, verlaengereSchlaf, hintergrund, setzeHintergrund, abdunkel, setzeAbdunkel],
   );
 
   return <PlayerKontext.Provider value={wert}>{children}</PlayerKontext.Provider>;

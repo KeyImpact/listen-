@@ -32,7 +32,8 @@ export default function RootLayout() {
                 headerShown: true,
                 title: '',
                 headerShadowVisible: false,
-                headerStyle: { backgroundColor: farben.hintergrund },
+                // Transparent: Der Hintergrund des Players (Cover, Verlauf) reicht bis ganz nach oben.
+                headerTransparent: true,
                 headerTintColor: farben.text,
                 headerBackVisible: false,
                 headerTitle: () => <HomeKnopf />,
@@ -64,6 +65,8 @@ export default function RootLayout() {
             <Stack.Screen
               name="einstellungen-seite"
               options={{
+                // Immer als normale Seite (Karte), auch wenn der Player als Fenster darunter liegt.
+                presentation: 'card',
                 headerShown: true,
                 title: 'Einstellungen',
                 headerStyle: { backgroundColor: farben.flaeche },
@@ -75,6 +78,15 @@ export default function RootLayout() {
               options={{
                 headerShown: true,
                 title: 'Balkendicke',
+                headerStyle: { backgroundColor: farben.flaeche },
+                headerTintColor: farben.text,
+              }}
+            />
+            <Stack.Screen
+              name="player-hintergrund"
+              options={{
+                headerShown: true,
+                title: 'Player-Hintergrund',
                 headerStyle: { backgroundColor: farben.flaeche },
                 headerTintColor: farben.text,
               }}

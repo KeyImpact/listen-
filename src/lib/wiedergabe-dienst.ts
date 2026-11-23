@@ -50,9 +50,20 @@ async function rueckspringenBeimStart(): Promise<void> {
   if (rueck > 0) await TrackPlayer.seekTo(Math.max(0, fortschritt.position - rueck));
 }
 
+// Startet die Wiedergabe. Zuerst wird ggf. zurückgesprungen, erst dann läuft der Ton.
+// So hört man den Abschnitt nicht noch einmal kurz, bevor der Sprung passiert.
+export async function startenMitRueckspruung(): Promise<void> {
+  try {
+    await rueckspringenBeimStart();
+  } catch (fehler) {
+    console.warn('Zurückspringen fehlgeschlagen:', fehler);
+  }
+  await TrackPlayer.play();
+}
+
 export async function wiedergabeDienst(): Promise<void> {
   TrackPlayer.addEventListener(Event.RemotePlay, () => {
-    void TrackPlayer.play();
+    void startenMitRueckspruung();
   });
   TrackPlayer.addEventListener(Event.RemotePause, () => {
     void TrackPlayer.pause();

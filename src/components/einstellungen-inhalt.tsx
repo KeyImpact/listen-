@@ -4,6 +4,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AKZENTE } from '@/constants/farben';
 import { useFarben, useAkzentWahl, useStile, type Palette } from '@/lib/farben-kontext';
 import { usePlayer } from '@/lib/player-kontext';
+import { HINTERGRUND_NAMEN } from '@/lib/cover-thema-logik';
 import { BALKEN_DICKEN } from '@/lib/player-logik';
 
 // Der Inhalt der Einstellungen. Wird im Reiter „Einstellungen“ und auf der Seite über das Zahnrad gezeigt.
@@ -13,7 +14,7 @@ export function EinstellungenInhalt() {
   const router = useRouter();
   const styles = useStile(gibStile);
   const { akzentSchluessel } = useAkzentWahl();
-  const { balkenWahl } = usePlayer();
+  const { balkenWahl, hintergrund } = usePlayer();
 
   const farbenName = AKZENTE.find((a) => a.schluessel === akzentSchluessel)?.name ?? AKZENTE[0].name;
   const balkenName = BALKEN_DICKEN.find((b) => b.schluessel === balkenWahl)?.name ?? BALKEN_DICKEN[0].name;
@@ -40,6 +41,7 @@ export function EinstellungenInhalt() {
       <View style={styles.liste}>
         {zeile('Farben', farbenName, '/farben', false)}
         {zeile('Balkendicke', balkenName, '/balken-dicke', true)}
+        {zeile('Player-Hintergrund', HINTERGRUND_NAMEN[hintergrund], '/player-hintergrund', true)}
         {zeile('Vor- und Zurück-Knöpfe', '', '/spul-knoepfe', true)}
       </View>
     </View>
