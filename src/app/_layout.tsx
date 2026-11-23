@@ -78,6 +78,15 @@ export default function RootLayout() {
               }}
             />
             <Stack.Screen
+              name="farben"
+              options={{
+                headerShown: true,
+                title: 'Farben',
+                headerStyle: { backgroundColor: farben.flaeche },
+                headerTintColor: farben.text,
+              }}
+            />
+            <Stack.Screen
               name="spul-knoepfe"
               options={{
                 headerShown: true,

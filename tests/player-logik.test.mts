@@ -8,7 +8,8 @@ import {
   formatiereTempo,
   formatiereZeit,
   fortschrittAnteil,
-  naechstesTempo,
+  rasteTempo,
+  TEMPO_WERTE,
   spulePosition,
   SPRUNG_SEK,
   kapitelLaenge,
@@ -38,27 +39,30 @@ test('Spulen: ohne bekannte Länge nur nach unten begrenzt', () => {
   assert.equal(spulePosition(10, SPRUNG_SEK, 0), 25);
 });
 
-test('Tempo: 0,5er-Schritte nach oben und unten', () => {
-  assert.equal(naechstesTempo(1, 1), 1.5);
-  assert.equal(naechstesTempo(1, -1), 0.5);
-  assert.equal(naechstesTempo(1.5, 1), 2);
+test('Tempo: Raster von 0,5× bis 3× in 0,1er-Schritten', () => {
+  assert.equal(TEMPO_WERTE[0], 0.5);
+  assert.equal(TEMPO_WERTE[1], 0.6);
+  assert.equal(TEMPO_WERTE.at(-1), 3);
+  assert.equal(TEMPO_WERTE.length, 26);
 });
 
-test('Tempo: bleibt zwischen 0,5× und 2×', () => {
-  assert.equal(naechstesTempo(2, 1), 2);
-  assert.equal(naechstesTempo(1.5, 1), 2);
-  assert.equal(naechstesTempo(0.5, -1), 0.5);
+test('Tempo: bleibt zwischen 0,5× und 3×', () => {
+  assert.equal(rasteTempo(3.7), 3);
+  assert.equal(rasteTempo(0.1), 0.5);
+  assert.equal(rasteTempo(-2), 0.5);
 });
 
-test('Tempo: ein Wert, der nicht auf dem Raster liegt, rastet ein', () => {
-  assert.equal(naechstesTempo(1.2, 1), 1.5);
-  assert.equal(naechstesTempo(1.2, -1), 0.5);
+test('Tempo: ein Wert wird auf das Raster gerundet', () => {
+  assert.equal(rasteTempo(1.24), 1.2);
+  assert.equal(rasteTempo(1.26), 1.3);
+  assert.equal(rasteTempo(2.3), 2.3);
 });
 
-test('Tempo: mehrfaches Erhöhen bleibt genau auf dem Raster', () => {
+test('Tempo: Rundung ohne Fehler im Komma (keine Werte wie 1,2000000001)', () => {
   let tempo = 0.5;
-  for (let i = 0; i < 5; i++) tempo = naechstesTempo(tempo, 1);
-  assert.equal(tempo, 2);
+  for (let i = 0; i < 25; i++) tempo = rasteTempo(tempo + 0.1);
+  assert.equal(tempo, 3);
+  assert.equal(rasteTempo(1.2 + 0.1 * 3), 1.5);
 });
 
 test('Tempo-Anzeige mit deutschem Komma', () => {

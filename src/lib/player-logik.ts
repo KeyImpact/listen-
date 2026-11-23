@@ -24,10 +24,10 @@ export function balkenDickeFuer(schluessel: string | null): number {
 export function formatiereSpulzeit(sekunden: number): string {
   return sekunden < 60 ? `${sekunden} s` : `${sekunden / 60} min`;
 }
+// Tempo von 0,5× bis 3× in 0,1er-Schritten. Gewählt am Drehrad im Player.
 export const TEMPO_MIN = 0.5;
-// Obergrenze 2×: Die Expo-Doku nennt für Android nur bis 2,0 (Entscheidung von Emir, 2026-11-16).
-export const TEMPO_MAX = 2;
-export const TEMPO_SCHRITT = 0.5;
+export const TEMPO_MAX = 3;
+export const TEMPO_SCHRITT = 0.1;
 
 function begrenze(wert: number, min: number, max: number): number {
   return Math.min(max, Math.max(min, wert));
@@ -43,10 +43,18 @@ export function spulePosition(position: number, sprung: number, dauer: number | 
 
 // Nächstes oder vorheriges Tempo in 0,5er-Schritten, innerhalb von 0,5× bis 3×.
 // Rechnet mit halben Schritten als ganze Zahlen, damit es keine Rundungsfehler gibt.
-export function naechstesTempo(tempo: number, richtung: 1 | -1): number {
-  const halbe = Math.round(tempo / TEMPO_SCHRITT) + richtung;
-  return begrenze(halbe * TEMPO_SCHRITT, TEMPO_MIN, TEMPO_MAX);
+// Rundet auf eine Stelle nach dem Komma und hält den Wert im erlaubten Bereich.
+// So bleibt das Tempo genau auf dem Raster, auch nach vielen Schritten.
+export function rasteTempo(wert: number): number {
+  const gerundet = Math.round(wert / TEMPO_SCHRITT) * TEMPO_SCHRITT;
+  return Number(begrenze(gerundet, TEMPO_MIN, TEMPO_MAX).toFixed(1));
 }
+
+// Alle erlaubten Tempi, vom kleinsten zum größten. Das Drehrad zeigt genau diese Werte.
+export const TEMPO_WERTE: number[] = Array.from(
+  { length: Math.round((TEMPO_MAX - TEMPO_MIN) / TEMPO_SCHRITT) + 1 },
+  (_, i) => rasteTempo(TEMPO_MIN + i * TEMPO_SCHRITT),
+);
 
 // Tempo für die Anzeige, zum Beispiel „1×“, „1,5×“ oder „0,5×“.
 export function formatiereTempo(tempo: number): string {

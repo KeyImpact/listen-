@@ -19,7 +19,7 @@ import {
   KAPITEL_TOLERANZ_SEK,
   STANDARD_BALKEN,
   kapitelSprungZiele,
-  naechstesTempo,
+  rasteTempo,
   sperrbildschirmDaten,
   spulePosition,
   STANDARD_SPRUNG_SEK,
@@ -78,7 +78,7 @@ interface PlayerWert {
   springeZu: (sekunden: number) => void;
   // Startzeiten des vorherigen und nächsten Kapitels, null wenn es keins gibt.
   kapitelSprung: { zurueck: number | null; weiter: number | null };
-  tempoAendern: (richtung: 1 | -1) => void;
+  tempoSetzen: (wert: number) => void; // Setzt das Tempo auf einen Wert. Er wird auf das Raster gerundet.
   spulzeiten: Spulzeiten;
   setzeSpulzeit: (richtung: SpulRichtung, sekunden: number) => void;
   // Die äußeren Knöpfe: an/aus und Spulzeit.
@@ -209,8 +209,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     if (a.buchId === null || !a.bereit) return;
     try {
       await speichereFortschritt(db, a.buchId, a.position, a.tempo);
-    } catch {
-      // Das Speichern ist nur Komfort. Ein Fehler darf die Wiedergabe nicht stoppen.
+    } catch (fehler) {
+      // Ein Fehler darf die Wiedergabe nicht stoppen. Wir melden ihn aber, damit man ihn sieht.
+      console.warn('Stelle konnte nicht gespeichert werden:', fehler);
     }
   }, [db]);
 
@@ -342,8 +343,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           vor: vor > 0 ? vor : STANDARD_SPRUNG_SEK,
         });
         // Das gespeicherte Tempo gilt schon vor dem Laden des Buches.
+        // Gespeichertes Tempo laden. rasteTempo hält es im erlaubten Bereich (0,5× bis 3×). Ohne Wert gilt 1×.
         const gespeichert = Number(await holeEinstellung(db, EINSTELLUNG_TEMPO));
-        const tempoStart = gespeichert >= 0.5 && gespeichert <= 2 ? gespeichert : 1;
+        const tempoStart = gespeichert > 0 ? rasteTempo(gespeichert) : 1;
         aktuelles.current.tempo = tempoStart;
         setTempo(tempoStart);
         // Äußere Knöpfe und Balkendicke aus der Datenbank.
@@ -446,16 +448,19 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   );
 
   // Ändert das Tempo und merkt es sich für alle Bücher. Der Wert im Ref ist sofort aktuell.
-  const tempoAendern = useCallback(
-    (richtung: 1 | -1) => {
-      const neu = naechstesTempo(aktuelles.current.tempo, richtung);
+  const tempoSetzen = useCallback(
+    (wert: number) => {
+      const neu = rasteTempo(wert);
+      if (neu === aktuelles.current.tempo) return;
       aktuelles.current.tempo = neu;
       setTempo(neu);
-      void setzeEinstellung(db, EINSTELLUNG_TEMPO, String(neu)).catch(() => {
-        // Speichern ist nur Komfort. Das Tempo gilt trotzdem für diese Sitzung.
-      });
+      // Tempo für alle Bücher merken, und die aktuelle Stelle gleich mit sichern.
+      setzeEinstellung(db, EINSTELLUNG_TEMPO, String(neu)).catch((fehler: unknown) =>
+        console.warn('Tempo konnte nicht gespeichert werden:', fehler),
+      );
+      void speichereStand();
     },
-    [db],
+    [db, speichereStand],
   );
 
   const abschnitt = useMemo<Abschnitt>(() => {
@@ -498,7 +503,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       springeInAbschnitt,
       springeZu,
       kapitelSprung,
-      tempoAendern,
+      tempoSetzen,
       spulzeiten,
       setzeSpulzeit,
       aussenAktiv,
@@ -509,7 +514,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       balkenDicke: balkenDickeFuer(balkenWahl),
       setzeBalkenDicke,
     }),
-    [buch, abschnitt, effektivPosition, gesamtDauer, spielt, ladeSpielen, tempo, oeffneBuch, umschalten, spulen, springeInAbschnitt, springeZu, kapitelSprung, tempoAendern, spulzeiten, setzeSpulzeit, aussenAktiv, setzeAussenAktiv, aussenSek, setzeAussenSek, balkenWahl, setzeBalkenDicke],
+    [buch, abschnitt, effektivPosition, gesamtDauer, spielt, ladeSpielen, tempo, oeffneBuch, umschalten, spulen, springeInAbschnitt, springeZu, kapitelSprung, tempoSetzen, spulzeiten, setzeSpulzeit, aussenAktiv, setzeAussenAktiv, aussenSek, setzeAussenSek, balkenWahl, setzeBalkenDicke],
   );
 
   return <PlayerKontext.Provider value={wert}>{children}</PlayerKontext.Provider>;

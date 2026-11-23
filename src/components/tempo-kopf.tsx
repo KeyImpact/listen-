@@ -1,12 +1,13 @@
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { TempoRad } from '@/components/tempo-rad';
 import { useFarben, useStile, type Palette } from '@/lib/farben-kontext';
 import { usePlayer } from '@/lib/player-kontext';
 import { formatiereTempo } from '@/lib/player-logik';
 
 // Der Tempo-Knopf in der Kopfleiste des Players. Er zeigt das Tempo, z. B. „1,5×“.
-// Ein Tipp öffnet einen Dialog, in dem man schneller und langsamer machen kann.
+// Ein Tipp öffnet ein Drehrad, mit dem man das Tempo in 0,1er-Schritten einstellt.
 export function TempoKopf() {
   const f = useFarben();
   const { tempo } = usePlayer();
@@ -24,32 +25,19 @@ export function TempoKopf() {
 
 function TempoDialog({ sichtbar, onSchliessen }: { sichtbar: boolean; onSchliessen: () => void }) {
   const styles = useStile(gibStile);
-  const { tempo, tempoAendern } = usePlayer();
+  const { tempo, tempoSetzen } = usePlayer();
 
   return (
-    <Modal visible={sichtbar} transparent animationType="fade" onRequestClose={onSchliessen}>
-      {/* Ein Tipp außerhalb des Kastens schließt den Dialog. */}
-      <Pressable style={styles.hintergrund} onPress={onSchliessen}>
-        <Pressable style={styles.kasten} onPress={() => {}}>
+    <Modal visible={sichtbar} transparent animationType="none" onRequestClose={onSchliessen}>
+      <View style={styles.hintergrund}>
+        {/* Ein Tipp außerhalb des Kastens schließt den Dialog. Der Kasten selbst ist kein Knopf,
+            damit das Wischen am Rad nicht abgefangen wird. */}
+        <Pressable style={StyleSheet.absoluteFill} onPress={onSchliessen} accessibilityLabel="Dialog schließen" />
+        <View style={styles.kasten}>
           <Text style={styles.titel}>Tempo</Text>
-          <View style={styles.zeile}>
-            <Pressable
-              style={styles.knopf}
-              accessibilityLabel="Langsamer"
-              onPress={() => tempoAendern(-1)}
-            >
-              <Text style={styles.knopfText}>−</Text>
-            </Pressable>
-            <Text style={styles.wert}>{formatiereTempo(tempo)}</Text>
-            <Pressable style={styles.knopf} accessibilityLabel="Schneller" onPress={() => tempoAendern(1)}>
-              <Text style={styles.knopfText}>+</Text>
-            </Pressable>
-          </View>
-          <Pressable style={styles.fertig} onPress={onSchliessen}>
-            <Text style={styles.fertigText}>Fertig</Text>
-          </Pressable>
-        </Pressable>
-      </Pressable>
+          <TempoRad wert={tempo} onWert={tempoSetzen} />
+        </View>
+      </View>
     </Modal>
   );
 }
@@ -76,40 +64,6 @@ function gibStile(f: Palette) {
       fontSize: 18,
       fontWeight: '700',
       textAlign: 'center',
-    },
-    zeile: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      justifyContent: 'space-between',
-    },
-    knopf: {
-      width: 64,
-      height: 64,
-      borderRadius: 32,
-      backgroundColor: f.flaecheHell,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    knopfText: {
-      color: f.text,
-      fontSize: 28,
-      fontWeight: '600',
-    },
-    wert: {
-      color: f.akzent,
-      fontSize: 32,
-      fontWeight: '700',
-    },
-    fertig: {
-      backgroundColor: f.akzent,
-      borderRadius: 12,
-      paddingVertical: 12,
-      alignItems: 'center',
-    },
-    fertigText: {
-      color: f.akzentText,
-      fontSize: 16,
-      fontWeight: '700',
     },
   });
 }
