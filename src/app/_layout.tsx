@@ -45,6 +45,8 @@ export default function RootLayout() {
                 ),
               }}
             />
+            {/* Die Adresse aus der Benachrichtigung landet hier und leitet zum Player weiter. Keine Fenster-Darstellung. */}
+            <Stack.Screen name="+not-found" options={{ presentation: 'card', headerShown: false }} />
             {/* Die Kapitelliste öffnet sich aus dem Player als Fenster von unten. */}
             <Stack.Screen
               name="kapitel"
@@ -62,6 +64,24 @@ export default function RootLayout() {
               options={{
                 headerShown: true,
                 title: 'Einstellungen',
+                headerStyle: { backgroundColor: farben.flaeche },
+                headerTintColor: farben.text,
+              }}
+            />
+            <Stack.Screen
+              name="balken-dicke"
+              options={{
+                headerShown: true,
+                title: 'Balkendicke',
+                headerStyle: { backgroundColor: farben.flaeche },
+                headerTintColor: farben.text,
+              }}
+            />
+            <Stack.Screen
+              name="spul-knoepfe"
+              options={{
+                headerShown: true,
+                title: 'Vor- und Zurück-Knöpfe',
                 headerStyle: { backgroundColor: farben.flaeche },
                 headerTintColor: farben.text,
               }}

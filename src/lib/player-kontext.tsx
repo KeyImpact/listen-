@@ -15,7 +15,9 @@ import {
 } from '@/lib/datenbank';
 import {
   aktuellesKapitel,
+  balkenDickeFuer,
   KAPITEL_TOLERANZ_SEK,
+  STANDARD_BALKEN,
   kapitelSprungZiele,
   naechstesTempo,
   sperrbildschirmDaten,
@@ -35,6 +37,15 @@ const EINSTELLUNG_SPULZEIT: Record<SpulRichtung, string> = {
 };
 // Das zuletzt benutzte Tempo. Es gilt für alle Bücher und ist am Anfang 1×.
 const EINSTELLUNG_TEMPO = 'tempo';
+// Die beiden äußeren Knöpfe (ganz links und ganz rechts). Sie sind aus, bis man sie einschaltet.
+// Die beiden äußeren Knöpfe gehen nur gemeinsam an oder aus. Jeder hat aber seine eigene Spulzeit.
+const EINSTELLUNG_AUSSEN_SEK: Record<SpulRichtung, string> = {
+  zurueck: 'spulzeit_aussen_zurueck',
+  vor: 'spulzeit_aussen_vor',
+};
+const EINSTELLUNG_AUSSEN_AKTIV = 'knopf_aussen_aktiv';
+const STANDARD_AUSSEN_SEK = 30;
+const EINSTELLUNG_BALKEN = 'balken_dicke';
 
 // Der Abschnitt ist das aktuelle Kapitel. Hat das Buch keine Kapitel, ist es das ganze Buch.
 // Der Zeitstrahl und das Antippen beziehen sich auf den Abschnitt.
@@ -70,6 +81,15 @@ interface PlayerWert {
   tempoAendern: (richtung: 1 | -1) => void;
   spulzeiten: Spulzeiten;
   setzeSpulzeit: (richtung: SpulRichtung, sekunden: number) => void;
+  // Die äußeren Knöpfe: an/aus und Spulzeit.
+  aussenAktiv: boolean;
+  setzeAussenAktiv: (an: boolean) => void;
+  aussenSek: Record<SpulRichtung, number>;
+  setzeAussenSek: (richtung: SpulRichtung, sekunden: number) => void;
+  // Dicke des Fortschrittsbalkens: der gespeicherte Schlüssel und die Dicke in Pixel.
+  balkenWahl: string;
+  balkenDicke: number;
+  setzeBalkenDicke: (schluessel: string) => void;
 }
 
 // Knöpfe, die Sperrbildschirm und Benachrichtigung zeigen. Vor und Zurück springen um die Spulzeit.
@@ -81,20 +101,27 @@ function sicherEingerichtet(): Promise<void> {
   if (!einrichtung) {
     einrichtung = (async () => {
       try {
-        await TrackPlayer.setupPlayer();
+        // autoHandleInterruptions: Der Player pausiert, wenn eine andere App (z. B. Spotify) den Ton übernimmt.
+        await TrackPlayer.setupPlayer({ autoHandleInterruptions: true });
       } catch {
         // Der Player ist schon eingerichtet (zum Beispiel nach einem Neuladen der Oberfläche).
       }
-      await TrackPlayer.updateOptions({
-        capabilities: KNOEPFE,
-        notificationCapabilities: KNOEPFE,
-        forwardJumpInterval: STANDARD_SPRUNG_SEK,
-        backwardJumpInterval: STANDARD_SPRUNG_SEK,
-        progressUpdateEventInterval: 0.5,
-      });
+      await TrackPlayer.updateOptions(optionenFuer(STANDARD_SPRUNG_SEK, STANDARD_SPRUNG_SEK));
     })();
   }
   return einrichtung;
+}
+
+// Alle Optionen des Players. updateOptions ersetzt die Einstellungen komplett. Fehlt eine, verschwindet sie.
+// Deshalb schicken wir immer alles zusammen, auch wenn sich nur die Spulzeit ändert.
+function optionenFuer(vor: number, zurueck: number) {
+  return {
+    capabilities: KNOEPFE,
+    notificationCapabilities: KNOEPFE,
+    forwardJumpInterval: vor,
+    backwardJumpInterval: zurueck,
+    progressUpdateEventInterval: 0.5,
+  };
 }
 
 // Titel, Künstler und Cover für die Benachrichtigung. Titel ist das Kapitel, sonst das Buch.
@@ -113,14 +140,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const [tempo, setTempo] = useState(1);
   // Der Zustand des Players (Laden, Spielen, Pause ...) und die letzte gemeldete Stelle.
   const [zustand, setZustand] = useState<State>(State.None);
+  const [spieltAbsicht, setSpieltAbsicht] = useState(false);
   const [fortschritt, setFortschritt] = useState({ position: 0, duration: 0 });
   // Das Ziel eines Sprungs. Die App zeigt es, bis der Player dort angekommen ist.
   const [sprungZiel, setSprungZielState] = useState<number | null>(null);
   // Play wurde gedrückt, während das Buch noch lädt. Dann zeigt die Anzeige schon „Pause“.
   const [ladeSpielen, setLadeSpielen] = useState(false);
   const [spulzeiten, setSpulzeiten] = useState<Spulzeiten>({ zurueck: STANDARD_SPRUNG_SEK, vor: STANDARD_SPRUNG_SEK });
+  const [aussenAktiv, setAussenAktiv] = useState(false);
+  const [aussenSek, setAussenSek] = useState<Record<SpulRichtung, number>>({
+    zurueck: STANDARD_AUSSEN_SEK,
+    vor: STANDARD_AUSSEN_SEK,
+  });
+  const [balkenWahl, setBalkenWahl] = useState<string>(STANDARD_BALKEN);
 
-  const spielt = zustand === State.Playing;
+  // Die Anzeige von Play/Pause folgt der Absicht, nicht jedem Zwischenzustand. Beim Springen meldet der Player
+  // kurz „Buffering“. Dann bleibt die Anzeige, wie sie war (kein Flackern).
+  const spielt = spieltAbsicht;
   const istGeladen = [State.Ready, State.Playing, State.Paused, State.Buffering].includes(zustand);
   const gesamtDauer = fortschritt.duration > 0 ? fortschritt.duration : (buch?.dauer_sek ?? 0);
   // Die Position, die wir anzeigen und speichern: das Sprungziel, sonst die gemeldete Stelle.
@@ -204,6 +240,9 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const subZustand = TrackPlayer.addEventListener(Event.PlaybackState, (e) => {
       setZustand(e.state);
+      // Spielt es, zeigen wir Pause. Stoppt es, zeigen wir Play. Kurze Ladezustände ändern nichts.
+      if (e.state === State.Playing) setSpieltAbsicht(true);
+      else if (e.state !== State.Buffering && e.state !== State.Loading) setSpieltAbsicht(false);
       // Läuft die Wiedergabe, ist die Absicht aus dem Laden erledigt.
       if (e.state === State.Playing) setLadeSpielen(false);
 
@@ -307,6 +346,17 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         const tempoStart = gespeichert >= 0.5 && gespeichert <= 2 ? gespeichert : 1;
         aktuelles.current.tempo = tempoStart;
         setTempo(tempoStart);
+        // Äußere Knöpfe und Balkendicke aus der Datenbank.
+        const aussenZurueck = Number(await holeEinstellung(db, EINSTELLUNG_AUSSEN_SEK.zurueck));
+        const aussenVor = Number(await holeEinstellung(db, EINSTELLUNG_AUSSEN_SEK.vor));
+        const aktiv = await holeEinstellung(db, EINSTELLUNG_AUSSEN_AKTIV);
+        setAussenAktiv(aktiv === '1');
+        setAussenSek({
+          zurueck: aussenZurueck > 0 ? aussenZurueck : STANDARD_AUSSEN_SEK,
+          vor: aussenVor > 0 ? aussenVor : STANDARD_AUSSEN_SEK,
+        });
+        const balken = await holeEinstellung(db, EINSTELLUNG_BALKEN);
+        if (balken) setBalkenWahl(balken);
         const letzter = await holeLetzterStand(db);
         if (letzter) {
           await oeffneBuch(letzter.buch, { position: letzter.position, pausiert: true });
@@ -321,10 +371,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     sicherEingerichtet()
       .then(() =>
-        TrackPlayer.updateOptions({
-          forwardJumpInterval: spulzeiten.vor,
-          backwardJumpInterval: spulzeiten.zurueck,
-        }),
+        TrackPlayer.updateOptions(optionenFuer(spulzeiten.vor, spulzeiten.zurueck)),
       )
       .catch((fehler: unknown) => console.warn('Spulzeiten konnten nicht gesetzt werden:', fehler));
   }, [spulzeiten]);
@@ -368,6 +415,32 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       void setzeEinstellung(db, EINSTELLUNG_SPULZEIT[richtung], String(sekunden)).catch(() => {
         // Speichern ist nur Komfort. Die Auswahl gilt trotzdem für diese Sitzung.
       });
+    },
+    [db],
+  );
+
+  // Schaltet beide äußeren Knöpfe zusammen an oder aus. Gilt sofort und bleibt gespeichert.
+  const setzeAussenAktiv = useCallback(
+    (an: boolean) => {
+      setAussenAktiv(an);
+      void setzeEinstellung(db, EINSTELLUNG_AUSSEN_AKTIV, an ? '1' : '0').catch(() => {});
+    },
+    [db],
+  );
+
+  // Die Spulzeit eines äußeren Knopfes. Gilt sofort und bleibt gespeichert.
+  const setzeAussenSek = useCallback(
+    (richtung: SpulRichtung, sekunden: number) => {
+      setAussenSek((alt) => ({ ...alt, [richtung]: sekunden }));
+      void setzeEinstellung(db, EINSTELLUNG_AUSSEN_SEK[richtung], String(sekunden)).catch(() => {});
+    },
+    [db],
+  );
+
+  const setzeBalkenDicke = useCallback(
+    (schluessel: string) => {
+      setBalkenWahl(schluessel);
+      void setzeEinstellung(db, EINSTELLUNG_BALKEN, schluessel).catch(() => {});
     },
     [db],
   );
@@ -428,8 +501,15 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       tempoAendern,
       spulzeiten,
       setzeSpulzeit,
+      aussenAktiv,
+      setzeAussenAktiv,
+      aussenSek,
+      setzeAussenSek,
+      balkenWahl,
+      balkenDicke: balkenDickeFuer(balkenWahl),
+      setzeBalkenDicke,
     }),
-    [buch, abschnitt, effektivPosition, gesamtDauer, spielt, ladeSpielen, tempo, oeffneBuch, umschalten, spulen, springeInAbschnitt, springeZu, kapitelSprung, tempoAendern, spulzeiten, setzeSpulzeit],
+    [buch, abschnitt, effektivPosition, gesamtDauer, spielt, ladeSpielen, tempo, oeffneBuch, umschalten, spulen, springeInAbschnitt, springeZu, kapitelSprung, tempoAendern, spulzeiten, setzeSpulzeit, aussenAktiv, setzeAussenAktiv, aussenSek, setzeAussenSek, balkenWahl, setzeBalkenDicke],
   );
 
   return <PlayerKontext.Provider value={wert}>{children}</PlayerKontext.Provider>;

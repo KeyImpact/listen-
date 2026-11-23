@@ -3,22 +3,19 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AKZENTE } from '@/constants/farben';
 import { useAkzentWahl, useFarben, useStile, type Palette } from '@/lib/farben-kontext';
-import { usePlayer, type SpulRichtung } from '@/lib/player-kontext';
-import { SPRUNG_OPTIONEN_SEK, formatiereSpulzeit } from '@/lib/player-logik';
-
-const SPUL_ZEILEN: { schluessel: SpulRichtung; name: string }[] = [
-  { schluessel: 'zurueck', name: '−' },
-  { schluessel: 'vor', name: '+' },
-];
+import { usePlayer } from '@/lib/player-kontext';
+import { BALKEN_DICKEN } from '@/lib/player-logik';
 
 // Der Inhalt der Einstellungen. Wird im Reiter „Einstellungen“ und auf der Seite über das Zahnrad gezeigt.
-// Bisher gibt es nur die Akzentfarbe: Sie färbt Knöpfe, Balken und den aktiven Reiter.
+// Oben die Akzentfarbe, darunter die Anpassungen des Players (Balkendicke, Spul-Knöpfe).
 export function EinstellungenInhalt() {
   const f = useFarben();
   const router = useRouter();
   const styles = useStile(gibStile);
   const { akzentSchluessel, setzeAkzent } = useAkzentWahl();
-  const { spulzeiten, setzeSpulzeit } = usePlayer();
+  const { balkenWahl } = usePlayer();
+
+  const balkenName = BALKEN_DICKEN.find((b) => b.schluessel === balkenWahl)?.name ?? BALKEN_DICKEN[0].name;
 
   return (
     <View style={[styles.behaelter, { backgroundColor: f.hintergrund }]}>
@@ -48,33 +45,28 @@ export function EinstellungenInhalt() {
         })}
       </View>
 
-      <Text style={styles.abschnitt}>Spulen im Player</Text>
+      <Text style={styles.abschnitt}>Anpassen</Text>
 
       <View style={styles.liste}>
-        {SPUL_ZEILEN.map((zeile, i) => (
-          <View key={zeile.schluessel} style={[styles.spulZeile, i > 0 && styles.zeileTrenner]}>
-            <Text style={styles.spulName}>{zeile.name}</Text>
-            <View style={styles.chips}>
-              {SPRUNG_OPTIONEN_SEK.map((sek) => {
-                const aktiv = spulzeiten[zeile.schluessel] === sek;
-                return (
-                  <Pressable
-                    key={sek}
-                    style={[styles.chip, { backgroundColor: aktiv ? f.akzent : f.flaecheHell }]}
-                    onPress={() => setzeSpulzeit(zeile.schluessel, sek)}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: aktiv }}
-                    accessibilityLabel={`${zeile.name} ${formatiereSpulzeit(sek)}`}
-                  >
-                    <Text style={[styles.chipText, { color: aktiv ? f.akzentText : f.text }]}>
-                      {formatiereSpulzeit(sek)}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
-          </View>
-        ))}
+        <Pressable
+          style={styles.zeile}
+          onPress={() => router.push('/balken-dicke')}
+          accessibilityRole="button"
+          accessibilityLabel="Balkendicke"
+        >
+          <Text style={styles.name}>Balkendicke</Text>
+          <Text style={styles.wert}>{balkenName}</Text>
+          <Text style={styles.pfeil}>›</Text>
+        </Pressable>
+        <Pressable
+          style={[styles.zeile, styles.zeileTrenner]}
+          onPress={() => router.push('/spul-knoepfe')}
+          accessibilityRole="button"
+          accessibilityLabel="Vor- und Zurück-Knöpfe"
+        >
+          <Text style={styles.name}>Vor- und Zurück-Knöpfe</Text>
+          <Text style={styles.pfeil}>›</Text>
+        </Pressable>
       </View>
     </View>
   );
@@ -121,34 +113,17 @@ function gibStile(f: Palette) {
       color: f.text,
       fontSize: 16,
     },
+    wert: {
+      color: f.textDezent,
+      fontSize: 15,
+    },
+    pfeil: {
+      color: f.textDezent,
+      fontSize: 22,
+    },
     haken: {
       fontSize: 18,
       fontWeight: '700',
-    },
-    spulZeile: {
-      paddingHorizontal: 16,
-      paddingVertical: 14,
-      gap: 10,
-    },
-    spulName: {
-      color: f.text,
-      fontSize: 22,
-      fontWeight: '700',
-      textAlign: 'center',
-    },
-    chips: {
-      flexDirection: 'row',
-      gap: 8,
-    },
-    chip: {
-      flex: 1,
-      alignItems: 'center',
-      paddingVertical: 10,
-      borderRadius: 16,
-    },
-    chipText: {
-      fontSize: 14,
-      fontWeight: '600',
     },
   });
 }

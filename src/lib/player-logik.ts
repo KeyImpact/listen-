@@ -2,9 +2,23 @@
 // Reine Funktionen, damit sie mit Node getestet werden können (siehe tests/player-logik.test.mts).
 
 export const SPRUNG_SEK = 15;
-// Auswahl für die Spulzeit in den Einstellungen: 15 Sekunden, 30 Sekunden oder 1 Minute.
-export const SPRUNG_OPTIONEN_SEK = [15, 30, 60] as const;
+// Auswahl für die Spulzeit in den Einstellungen: 5 Sekunden, 15 Sekunden, 30 Sekunden oder 1 Minute.
+export const SPRUNG_OPTIONEN_SEK = [5, 15, 30, 60] as const;
 export const STANDARD_SPRUNG_SEK = 15;
+
+// Die Dicke des Fortschrittsbalkens unten im Player. Der Schlüssel wird gespeichert, die Dicke in Pixel.
+export const BALKEN_DICKEN = [
+  { schluessel: 'schmal', name: 'Schmal', dicke: 4 },
+  { schluessel: 'mittel', name: 'Mittel', dicke: 8 },
+  { schluessel: 'dick', name: 'Dick', dicke: 12 },
+] as const;
+export const STANDARD_BALKEN = 'schmal';
+
+// Die Dicke zu einem gespeicherten Schlüssel. Unbekannte Werte bekommen die Standard-Dicke.
+export function balkenDickeFuer(schluessel: string | null): number {
+  const gefunden = BALKEN_DICKEN.find((b) => b.schluessel === schluessel);
+  return (gefunden ?? BALKEN_DICKEN[0]).dicke;
+}
 
 // Anzeige einer Spulzeit, zum Beispiel „15 s“ oder „1 min“.
 export function formatiereSpulzeit(sekunden: number): string {

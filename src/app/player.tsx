@@ -3,6 +3,7 @@ import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { StartStoppKnopf } from '@/components/start-stopp-knopf';
 import { useStile, type Palette } from '@/lib/farben-kontext';
 import { usePlayer } from '@/lib/player-kontext';
 import { formatiereSpulzeit, formatiereZeit, fortschrittAnteil } from '@/lib/player-logik';
@@ -24,6 +25,9 @@ export default function PlayerScreen() {
     springeZu,
     kapitelSprung,
     spulzeiten,
+    aussenAktiv,
+    aussenSek,
+    balkenDicke,
   } = usePlayer();
   const [balkenBreite, setBalkenBreite] = useState(0);
   const [zeigeZeit, setZeigeZeit] = useState(false);
@@ -113,7 +117,7 @@ export default function PlayerScreen() {
             }
           }}
         >
-          <View style={styles.spur}>
+          <View style={[styles.spur, { height: balkenDicke, borderRadius: balkenDicke / 2 }]}>
             <View style={[styles.fuellung, { width: `${anteil * 100}%` }]} />
           </View>
         </Pressable>
@@ -121,19 +125,24 @@ export default function PlayerScreen() {
       </View>
 
       <View style={styles.steuerung}>
+        {/* Von außen nach innen: äußerer Knopf links, innen links, Start, innen rechts, äußerer Knopf rechts. */}
+        {aussenAktiv ? (
+          <Pressable style={styles.sprungKnopf} onPress={() => spulen(-aussenSek.zurueck)}>
+            <Text style={styles.sprungText}>−{formatiereSpulzeit(aussenSek.zurueck)}</Text>
+          </Pressable>
+        ) : null}
         <Pressable style={styles.sprungKnopf} onPress={() => spulen(-spulzeiten.zurueck)}>
           <Text style={styles.sprungText}>−{formatiereSpulzeit(spulzeiten.zurueck)}</Text>
         </Pressable>
-        <Pressable
-          style={styles.playKnopf}
-          accessibilityLabel={spielt ? 'Pause' : 'Abspielen'}
-          onPress={umschalten}
-        >
-          <Text style={styles.playText}>{spielt ? 'Pause' : 'Play'}</Text>
-        </Pressable>
+        <StartStoppKnopf spielt={spielt} onPress={umschalten} groesse={64} />
         <Pressable style={styles.sprungKnopf} onPress={() => spulen(spulzeiten.vor)}>
           <Text style={styles.sprungText}>+{formatiereSpulzeit(spulzeiten.vor)}</Text>
         </Pressable>
+        {aussenAktiv ? (
+          <Pressable style={styles.sprungKnopf} onPress={() => spulen(aussenSek.vor)}>
+            <Text style={styles.sprungText}>+{formatiereSpulzeit(aussenSek.vor)}</Text>
+          </Pressable>
+        ) : null}
       </View>
 
     </View>
@@ -259,31 +268,20 @@ function gibStile(f: Palette) {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'center',
-      gap: 12,
+      gap: 6,
     },
     sprungKnopf: {
+      width: 60, // Feste Breite, damit die Knöpfe nicht je nach Text springen.
       height: 44,
-      paddingHorizontal: 16,
       borderRadius: 22,
       backgroundColor: f.flaecheHell,
+      alignItems: 'center',
       justifyContent: 'center',
     },
     sprungText: {
       color: f.text,
       fontSize: 14,
       fontWeight: '600',
-    },
-    playKnopf: {
-      height: 56,
-      paddingHorizontal: 32,
-      borderRadius: 28,
-      backgroundColor: f.akzent,
-      justifyContent: 'center',
-    },
-    playText: {
-      color: f.akzentText,
-      fontSize: 16,
-      fontWeight: '700',
     },
     textKnopf: {
       alignSelf: 'center',

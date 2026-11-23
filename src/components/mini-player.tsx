@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
+import { StartStoppKnopf } from '@/components/start-stopp-knopf';
 import { fortschrittAnteil } from '@/lib/player-logik';
 import { usePlayer } from '@/lib/player-kontext';
 import { useStile, type Palette } from '@/lib/farben-kontext';
@@ -22,14 +23,7 @@ export function MiniPlayer({ unten }: { unten: number }) {
         <Text style={styles.titel} numberOfLines={1}>
           {buch.titel}
         </Text>
-        <Pressable
-          style={styles.knopf}
-          hitSlop={8}
-          accessibilityLabel={spielt ? 'Pause' : 'Abspielen'}
-          onPress={umschalten}
-        >
-          <Text style={styles.knopfText}>{spielt ? 'Pause' : 'Weiter'}</Text>
-        </Pressable>
+        <StartStoppKnopf spielt={spielt} onPress={umschalten} groesse={40} />
       </View>
       <View style={styles.spur}>
         <View style={[styles.fuellung, { width: `${fortschrittAnteil(position, dauer) * 100}%` }]} />
@@ -61,17 +55,6 @@ function gibStile(f: Palette) {
       flex: 1,
       color: f.text,
       fontSize: 15,
-      fontWeight: '600',
-    },
-    knopf: {
-      backgroundColor: f.akzent,
-      borderRadius: 16,
-      paddingHorizontal: 16,
-      paddingVertical: 6,
-    },
-    knopfText: {
-      color: f.akzentText,
-      fontSize: 14,
       fontWeight: '600',
     },
     spur: {
