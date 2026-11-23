@@ -1,6 +1,6 @@
 {
   "expo": {
-    "name": "Listen!",
+    "name": "Lithen!",
     "slug": "listen",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -20,7 +20,6 @@
       },
       "predictiveBackGestureEnabled": false,
       "permissions": [
-        "android.permission.RECORD_AUDIO",
         "android.permission.MODIFY_AUDIO_SETTINGS",
         "android.permission.FOREGROUND_SERVICE",
         "android.permission.FOREGROUND_SERVICE_MEDIA_PLAYBACK"
@@ -40,8 +39,7 @@
           "imageWidth": 76
         }
       ],
-      "expo-sqlite",
-      "expo-audio"
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true,

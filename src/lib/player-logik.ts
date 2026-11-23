@@ -115,3 +115,17 @@ export function fortschrittAnteil(position: number, dauer: number): number {
   if (!Number.isFinite(dauer) || dauer <= 0) return 0;
   return begrenze(position / dauer, 0, 1);
 }
+
+// Daten für die Mediensteuerung (Sperrbildschirm und Benachrichtigung).
+// Titel ist der Kapitelname, Künstler der Buchtitel. Ohne Kapitel steht der Buchtitel im Titel.
+export function sperrbildschirmDaten(
+  buch: { titel: string; cover_pfad: string | null },
+  kapitelTitel: string | null,
+): { title: string; artist: string; artworkUrl?: string } {
+  const daten: { title: string; artist: string; artworkUrl?: string } = {
+    title: kapitelTitel && kapitelTitel.trim() !== '' ? kapitelTitel : buch.titel,
+    artist: buch.titel,
+  };
+  if (buch.cover_pfad) daten.artworkUrl = buch.cover_pfad;
+  return daten;
+}

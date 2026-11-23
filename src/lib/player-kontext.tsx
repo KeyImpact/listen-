@@ -1,6 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
 import { AppState } from 'react-native';
-import { useAudioPlayer, useAudioPlayerStatus } from 'expo-audio';
+import TrackPlayer, { Capability, Event, State } from 'react-native-track-player';
 import { useSQLiteContext } from 'expo-sqlite';
 
 import {
@@ -15,8 +15,10 @@ import {
 } from '@/lib/datenbank';
 import {
   aktuellesKapitel,
+  KAPITEL_TOLERANZ_SEK,
   kapitelSprungZiele,
   naechstesTempo,
+  sperrbildschirmDaten,
   spulePosition,
   STANDARD_SPRUNG_SEK,
 } from '@/lib/player-logik';
@@ -31,6 +33,8 @@ const EINSTELLUNG_SPULZEIT: Record<SpulRichtung, string> = {
   zurueck: 'spulzeit_zurueck',
   vor: 'spulzeit_vor',
 };
+// Das zuletzt benutzte Tempo. Es gilt für alle Bücher und ist am Anfang 1×.
+const EINSTELLUNG_TEMPO = 'tempo';
 
 // Der Abschnitt ist das aktuelle Kapitel. Hat das Buch keine Kapitel, ist es das ganze Buch.
 // Der Zeitstrahl und das Antippen beziehen sich auf den Abschnitt.
@@ -68,26 +72,64 @@ interface PlayerWert {
   setzeSpulzeit: (richtung: SpulRichtung, sekunden: number) => void;
 }
 
+// Knöpfe, die Sperrbildschirm und Benachrichtigung zeigen. Vor und Zurück springen um die Spulzeit.
+const KNOEPFE = [Capability.Play, Capability.Pause, Capability.JumpBackward, Capability.JumpForward, Capability.SeekTo];
+
+// Richtet den Player einmal ein. Die Funktion merkt sich das Ergebnis, damit nichts doppelt läuft.
+let einrichtung: Promise<void> | null = null;
+function sicherEingerichtet(): Promise<void> {
+  if (!einrichtung) {
+    einrichtung = (async () => {
+      try {
+        await TrackPlayer.setupPlayer();
+      } catch {
+        // Der Player ist schon eingerichtet (zum Beispiel nach einem Neuladen der Oberfläche).
+      }
+      await TrackPlayer.updateOptions({
+        capabilities: KNOEPFE,
+        notificationCapabilities: KNOEPFE,
+        forwardJumpInterval: STANDARD_SPRUNG_SEK,
+        backwardJumpInterval: STANDARD_SPRUNG_SEK,
+        progressUpdateEventInterval: 0.5,
+      });
+    })();
+  }
+  return einrichtung;
+}
+
+// Titel, Künstler und Cover für die Benachrichtigung. Titel ist das Kapitel, sonst das Buch.
+function metadatenFuer(buch: BuchZeile, kapitelTitel: string | null) {
+  const daten = sperrbildschirmDaten(buch, kapitelTitel);
+  return { title: daten.title, artist: daten.artist, artwork: daten.artworkUrl };
+}
+
 const PlayerKontext = createContext<PlayerWert | null>(null);
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const db = useSQLiteContext();
-  const player = useAudioPlayer();
-  const status = useAudioPlayerStatus(player);
 
   const [buch, setBuch] = useState<BuchZeile | null>(null);
   const [kapitel, setKapitel] = useState<KapitelKurz[]>([]);
   const [tempo, setTempo] = useState(1);
+  // Der Zustand des Players (Laden, Spielen, Pause ...) und die letzte gemeldete Stelle.
+  const [zustand, setZustand] = useState<State>(State.None);
+  const [fortschritt, setFortschritt] = useState({ position: 0, duration: 0 });
   // Das Ziel eines Sprungs. Die App zeigt es, bis der Player dort angekommen ist.
   const [sprungZiel, setSprungZielState] = useState<number | null>(null);
   // Play wurde gedrückt, während das Buch noch lädt. Dann zeigt die Anzeige schon „Pause“.
   const [ladeSpielen, setLadeSpielen] = useState(false);
   const [spulzeiten, setSpulzeiten] = useState<Spulzeiten>({ zurueck: STANDARD_SPRUNG_SEK, vor: STANDARD_SPRUNG_SEK });
+
+  const spielt = zustand === State.Playing;
+  const istGeladen = [State.Ready, State.Playing, State.Paused, State.Buffering].includes(zustand);
+  const gesamtDauer = fortschritt.duration > 0 ? fortschritt.duration : (buch?.dauer_sek ?? 0);
+  // Die Position, die wir anzeigen und speichern: das Sprungziel, sonst die gemeldete Stelle.
+  const effektivPosition = sprungZiel ?? fortschritt.position;
+
   const sprungZielRef = useRef<number | null>(null);
-  // Setzt das Sprungziel und merkt es im Ref, damit der Status-Listener es ohne Verzögerung sieht.
+  // Setzt das Sprungziel und merkt es im Ref, damit der Listener es ohne Verzögerung sieht.
   const sprungZeitRef = useRef(0);
   // Erst wenn der Sprung abgeschlossen ist (seekTo ist fertig), darf das Ziel verschwinden.
-  // Vorher kann der Player noch die alte Stelle melden, und die Anzeige würde kurz springen.
   const sprungBestaetigtRef = useRef(false);
   const setSprungZiel = useCallback((ziel: number | null) => {
     sprungZielRef.current = ziel;
@@ -95,15 +137,21 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     sprungBestaetigtRef.current = false;
     setSprungZielState(ziel);
   }, []);
-  // Führt einen Sprung aus und markiert das Ziel als bestätigt, sobald der Player fertig ist.
+
+  // Führt einen Sprung aus. Nach Abschluss zeigt die Anzeige das Ziel, bis der Player es bestätigt.
   const sprungAusfuehren = useCallback(
     (ziel: number) => {
       setSprungZiel(ziel);
-      void player.seekTo(ziel).then(() => {
-        if (sprungZielRef.current === ziel) sprungBestaetigtRef.current = true;
-      });
+      TrackPlayer.seekTo(ziel)
+        .then(() => {
+          if (sprungZielRef.current === ziel) {
+            sprungBestaetigtRef.current = true;
+            setFortschritt((alt) => ({ ...alt, position: ziel }));
+          }
+        })
+        .catch((fehler: unknown) => console.warn('Sprung fehlgeschlagen:', fehler));
     },
-    [player, setSprungZiel],
+    [setSprungZiel],
   );
 
   // Werte für Zeitgeber und App-Zustand. Ein Ref ändert nichts am Bildschirm, deshalb ist er hier passend.
@@ -112,14 +160,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
   const ausstehend = useRef<{ position: number; pausiert: boolean } | null>(null);
   const gestartet = useRef(false);
 
-  // Die Position, die wir anzeigen und speichern: das Sprungziel, sonst die Zeit des Players.
-  const effektivPosition = sprungZiel ?? status.currentTime;
-
   useEffect(() => {
     aktuelles.current.position = effektivPosition;
     aktuelles.current.tempo = tempo;
-    aktuelles.current.spielt = status.playing;
-  }, [effektivPosition, tempo, status.playing]);
+    aktuelles.current.spielt = spielt;
+  }, [effektivPosition, tempo, spielt]);
 
   // Speichert die aktuelle Stelle. Solange ein Buch noch lädt, wird nichts gespeichert,
   // sonst würde die alte Stelle mit 0 überschrieben.
@@ -135,8 +180,8 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // Beim Pausieren, Ende und Neuladen speichern.
   useEffect(() => {
-    if (!status.playing) void speichereStand();
-  }, [status.playing, speichereStand]);
+    if (!spielt) void speichereStand();
+  }, [spielt, speichereStand]);
 
   // Beim Hören alle 5 Sekunden speichern, damit bei einem Absturz kaum etwas verloren geht.
   useEffect(() => {
@@ -148,53 +193,63 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
   // Wenn die App in den Hintergrund geht, speichern wir die Stelle.
   useEffect(() => {
-    const sub = AppState.addEventListener('change', (zustand) => {
-      if (zustand !== 'active') void speichereStand();
+    const sub = AppState.addEventListener('change', (zustandApp) => {
+      if (zustandApp !== 'active') void speichereStand();
     });
     return () => sub.remove();
   }, [speichereStand]);
 
-  // Das Tempo muss nach jedem Laden neu gesetzt werden und bei jeder Änderung.
-  // Mit Tonhöhen-Korrektur, damit die Stimme nicht hoch klingt.
+  // Meldungen des Players: Zustand, Stelle und Fehler.
+  // Sobald das neue Buch bereit ist (State.Ready), springen wir an die Startstelle und pausieren ggf.
   useEffect(() => {
-    if (status.isLoaded) {
-      player.setPlaybackRate(tempo, 'high');
-    }
-  }, [player, status.isLoaded, tempo, buch]);
+    const subZustand = TrackPlayer.addEventListener(Event.PlaybackState, (e) => {
+      setZustand(e.state);
+      // Läuft die Wiedergabe, ist die Absicht aus dem Laden erledigt.
+      if (e.state === State.Playing) setLadeSpielen(false);
 
-  // Sobald das neue Buch geladen ist, springen wir an die Startstelle und pausieren ggf.
-  // Wir hören auf das Ereignis „playbackStatusUpdate“, damit wir nicht den Stand des alten Buches erwischen.
-  useEffect(() => {
-    const sub = player.addListener('playbackStatusUpdate', (s) => {
-      // Läuft die Wiedergabe, ist die Absicht aus dem Laden erledigt. Vorher bleibt „Pause“ stehen, damit der Knopf nicht flackert.
-      if (s.playing) setLadeSpielen(false);
-      // Das Ziel bleibt stehen, bis die Wiedergabe dort angekommen ist. Eine einzelne Meldung reicht nicht,
-      // weil der Player nach einem Sprung kurz die alte Stelle melden kann.
-      // Notbremse nach 5 Sekunden Wiedergabe, damit die Anzeige nie hängen bleibt.
+      const a = ausstehend.current;
+      if (!a || e.state !== State.Ready) return;
+      ausstehend.current = null;
+      void (async () => {
+        try {
+          await TrackPlayer.setRate(aktuelles.current.tempo);
+          await TrackPlayer.seekTo(a.position);
+          if (a.pausiert) {
+            await TrackPlayer.pause();
+            setLadeSpielen(false);
+          } else {
+            await TrackPlayer.play();
+          }
+          if (sprungZielRef.current === a.position) sprungBestaetigtRef.current = true;
+          aktuelles.current.bereit = true;
+        } catch (fehler) {
+          console.warn('Start des Buches fehlgeschlagen:', fehler);
+        }
+      })();
+    });
+
+    const subFortschritt = TrackPlayer.addEventListener(Event.PlaybackProgressUpdated, (e) => {
+      setFortschritt({ position: e.position, duration: e.duration });
+      // Das Ziel bleibt stehen, bis die Wiedergabe dort angekommen ist. Sonst würde die Anzeige kurz ins alte Kapitel springen.
+      // Notbremse nach 30 Sekunden, damit die Anzeige nie hängen bleibt.
       const ziel = sprungZielRef.current;
-      if (ziel !== null && sprungBestaetigtRef.current && s.playing) {
-        // Erst wenn die Wiedergabe das Ziel wirklich erreicht. Liegt sie davor, bleibt das Ziel stehen,
-        // sonst würde die Anzeige kurz ins alte Kapitel zurückspringen.
-        const angekommen = s.currentTime >= ziel;
+      if (ziel !== null && sprungBestaetigtRef.current) {
+        const angekommen = e.position >= ziel - KAPITEL_TOLERANZ_SEK;
         const zuLange = Date.now() - sprungZeitRef.current > 30000;
         if (angekommen || zuLange) setSprungZiel(null);
       }
-      const a = ausstehend.current;
-      if (!a || !s.isLoaded || s.duration <= 0) return;
-      ausstehend.current = null;
-      void (async () => {
-        // Sprung und Start gleich hintereinander anstoßen, nicht auf das Ende des Sprungs warten.
-        const sprung = player.seekTo(a.position);
-        if (a.pausiert) player.pause();
-        else player.play();
-        if (a.pausiert) setLadeSpielen(false);
-        await sprung;
-        if (sprungZielRef.current === a.position) sprungBestaetigtRef.current = true;
-        aktuelles.current.bereit = true;
-      })();
     });
-    return () => sub.remove();
-  }, [player, setSprungZiel]);
+
+    const subFehler = TrackPlayer.addEventListener(Event.PlaybackError, (e) => {
+      console.warn('Wiedergabefehler:', e);
+    });
+
+    return () => {
+      subZustand.remove();
+      subFortschritt.remove();
+      subFehler.remove();
+    };
+  }, [setSprungZiel]);
 
   const oeffneBuch = useCallback(
     async (neu: BuchZeile, optionen: OeffneOptionen = {}) => {
@@ -214,20 +269,24 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
 
       const gemerkt = await holeFortschritt(db, neu.id);
       const kap = await holeKapitel(db, neu.id);
+      await sicherEingerichtet();
 
       // Die Anzeige zeigt sofort die Startstelle, auch während das Buch noch lädt.
       const start = optionen.position ?? gemerkt?.position ?? 0;
       setSprungZiel(start);
       setKapitel(kap);
       setBuch(neu);
-      setTempo(gemerkt?.tempo ?? aktuelles.current.tempo);
       // Standard: Das Buch steht an der Stelle und wartet auf Play. Nur wer ausdrücklich will, startet direkt.
       const pausiert = optionen.pausiert ?? true;
       ausstehend.current = { position: start, pausiert };
       setLadeSpielen(!pausiert);
-      player.replace({ uri: neu.datei_uri });
+
+      // Die Warteschlange leeren und das Buch als einzige Datei neu einreihen.
+      await TrackPlayer.reset();
+      const kapitelTitel = aktuellesKapitel(kap, start)?.titel ?? null;
+      await TrackPlayer.add({ url: neu.datei_uri, ...metadatenFuer(neu, kapitelTitel) });
     },
-    [db, player, speichereStand, setSprungZiel, sprungAusfuehren],
+    [db, speichereStand, setSprungZiel, sprungAusfuehren],
   );
 
   // Beim App-Start: Das zuletzt gehörte Buch wird geladen und steht pausiert an der gemerkten Stelle.
@@ -243,6 +302,11 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           zurueck: zurueck > 0 ? zurueck : STANDARD_SPRUNG_SEK,
           vor: vor > 0 ? vor : STANDARD_SPRUNG_SEK,
         });
+        // Das gespeicherte Tempo gilt schon vor dem Laden des Buches.
+        const gespeichert = Number(await holeEinstellung(db, EINSTELLUNG_TEMPO));
+        const tempoStart = gespeichert >= 0.5 && gespeichert <= 2 ? gespeichert : 1;
+        aktuelles.current.tempo = tempoStart;
+        setTempo(tempoStart);
         const letzter = await holeLetzterStand(db);
         if (letzter) {
           await oeffneBuch(letzter.buch, { position: letzter.position, pausiert: true });
@@ -253,6 +317,23 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     })();
   }, [db, oeffneBuch]);
 
+  // Die Spulzeiten gelten auch für die Knöpfe in der Benachrichtigung.
+  useEffect(() => {
+    sicherEingerichtet()
+      .then(() =>
+        TrackPlayer.updateOptions({
+          forwardJumpInterval: spulzeiten.vor,
+          backwardJumpInterval: spulzeiten.zurueck,
+        }),
+      )
+      .catch((fehler: unknown) => console.warn('Spulzeiten konnten nicht gesetzt werden:', fehler));
+  }, [spulzeiten]);
+
+  // Das Tempo gilt nach jedem Laden und bei jeder Änderung. Die Tonhöhe bleibt dabei gleich.
+  useEffect(() => {
+    if (istGeladen) TrackPlayer.setRate(tempo).catch(() => {});
+  }, [tempo, istGeladen]);
+
   const umschalten = useCallback(() => {
     // Noch am Laden: Wir merken uns nur die Absicht, die App setzt sie nach dem Laden um.
     if (ausstehend.current) {
@@ -260,17 +341,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setLadeSpielen(!ausstehend.current.pausiert);
       return;
     }
-    if (status.playing) player.pause();
-    else player.play();
-  }, [player, status.playing]);
+    if (aktuelles.current.spielt) void TrackPlayer.pause();
+    else void TrackPlayer.play();
+  }, []);
 
   const spulen = useCallback(
     (sekunden: number) => {
-      const dauer = status.duration > 0 ? status.duration : null;
-      const ziel = spulePosition(effektivPosition, sekunden, dauer);
+      const ziel = spulePosition(effektivPosition, sekunden, gesamtDauer > 0 ? gesamtDauer : null);
       sprungAusfuehren(ziel);
     },
-    [effektivPosition, status.duration, sprungAusfuehren],
+    [effektivPosition, gesamtDauer, sprungAusfuehren],
   );
 
   // Sprung an eine Stelle (Kapitelgrenze oder Zeitstrahl). Ein Sprung wird einmal ausgeführt, nicht wiederholt.
@@ -292,12 +372,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [db],
   );
 
-  const tempoAendern = useCallback((richtung: 1 | -1) => {
-    setTempo((alt) => naechstesTempo(alt, richtung));
-  }, []);
-
-  // Gesamtlänge: Solange der Player noch lädt, nehmen wir die Länge aus der Datenbank.
-  const gesamtDauer = status.duration > 0 ? status.duration : (buch?.dauer_sek ?? 0);
+  // Ändert das Tempo und merkt es sich für alle Bücher. Der Wert im Ref ist sofort aktuell.
+  const tempoAendern = useCallback(
+    (richtung: 1 | -1) => {
+      const neu = naechstesTempo(aktuelles.current.tempo, richtung);
+      aktuelles.current.tempo = neu;
+      setTempo(neu);
+      void setzeEinstellung(db, EINSTELLUNG_TEMPO, String(neu)).catch(() => {
+        // Speichern ist nur Komfort. Das Tempo gilt trotzdem für diese Sitzung.
+      });
+    },
+    [db],
+  );
 
   const abschnitt = useMemo<Abschnitt>(() => {
     const bereich = aktuellesKapitel(kapitel, effektivPosition);
@@ -313,6 +399,13 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [springeZu, abschnitt],
   );
 
+  // Die Benachrichtigung zeigt den Kapitelnamen. Ändert sich das Kapitel, setzen wir nur den Titel neu.
+  const aktuellerKapitelTitel = abschnitt.titel;
+  useEffect(() => {
+    if (!buch || !istGeladen) return;
+    TrackPlayer.updateNowPlayingMetadata(metadatenFuer(buch, aktuellerKapitelTitel)).catch(() => {});
+  }, [buch, istGeladen, aktuellerKapitelTitel]);
+
   const kapitelSprung = useMemo(
     () => kapitelSprungZiele(kapitel, effektivPosition),
     [kapitel, effektivPosition],
@@ -324,7 +417,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       abschnitt,
       position: effektivPosition,
       dauer: gesamtDauer,
-      spielt: status.playing || ladeSpielen,
+      spielt: spielt || ladeSpielen,
       tempo,
       oeffneBuch,
       umschalten,
@@ -336,7 +429,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       spulzeiten,
       setzeSpulzeit,
     }),
-    [buch, abschnitt, effektivPosition, gesamtDauer, status.playing, ladeSpielen, tempo, oeffneBuch, umschalten, spulen, springeInAbschnitt, springeZu, kapitelSprung, tempoAendern, spulzeiten, setzeSpulzeit],
+    [buch, abschnitt, effektivPosition, gesamtDauer, spielt, ladeSpielen, tempo, oeffneBuch, umschalten, spulen, springeInAbschnitt, springeZu, kapitelSprung, tempoAendern, spulzeiten, setzeSpulzeit],
   );
 
   return <PlayerKontext.Provider value={wert}>{children}</PlayerKontext.Provider>;

@@ -100,6 +100,16 @@ export async function speichereFortschritt(
   );
 }
 
+// Die gemerkte Stelle aller Bücher, für die Fortschrittsbalken in der Bibliothek. Schlüssel ist die Buch-Nummer.
+export async function holeAlleFortschritte(db: SQLiteDatabase): Promise<Record<number, number>> {
+  const zeilen = await db.getAllAsync<{ buch_id: number; position: number }>(
+    'SELECT buch_id, position FROM lesestand',
+  );
+  const ergebnis: Record<number, number> = {};
+  for (const z of zeilen) ergebnis[z.buch_id] = z.position;
+  return ergebnis;
+}
+
 // Das Buch, das zuletzt gehört wurde, mit der gemerkten Stelle. null, wenn noch nichts gehört wurde.
 export async function holeLetzterStand(
   db: SQLiteDatabase,

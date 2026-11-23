@@ -6,8 +6,8 @@ import { useStile, type Palette } from '@/lib/farben-kontext';
 
 // Eine Kachel in der Bibliothek: Cover, Titel, Autor und Fortschrittsbalken.
 // Ein Tipp startet das Buch (der Aufrufer entscheidet, was dann passiert).
-// Der Fortschritt bleibt bis Schritt 4 bei 0 %.
-export function BuchKachel({ buch, onPress }: { buch: BuchZeile; onPress: () => void }) {
+// anteil: Wie weit das Buch gehört ist, zwischen 0 und 1.
+export function BuchKachel({ buch, anteil, onPress }: { buch: BuchZeile; anteil: number; onPress: () => void }) {
   const styles = useStile(gibStile);
   return (
     <Pressable style={styles.kachel} onPress={onPress}>
@@ -27,7 +27,7 @@ export function BuchKachel({ buch, onPress }: { buch: BuchZeile; onPress: () => 
         {buch.autor ?? 'Unbekannter Autor'}
       </Text>
       <View style={styles.fortschrittSpur}>
-        <View style={styles.fortschrittFuellung} />
+        <View style={[styles.fortschrittFuellung, { width: `${anteil * 100}%` }]} />
       </View>
     </Pressable>
   );
@@ -78,7 +78,6 @@ function gibStile(f: Palette) {
       overflow: 'hidden',
     },
     fortschrittFuellung: {
-      width: '0%',
       height: '100%',
       backgroundColor: f.akzent,
     },

@@ -1,17 +1,18 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useState } from 'react';
+import { useCallback, useLayoutEffect, useMemo, useState } from 'react';
 import { Alert, FlatList, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
-import { useNavigation, useRouter } from 'expo-router';
+import { useFocusEffect, useNavigation, useRouter } from 'expo-router';
 import { useSQLiteContext } from 'expo-sqlite';
 
 import { BuchKachel } from '@/components/buch-kachel';
 import { MINI_PLAYER_HOEHE } from '@/components/mini-player';
 import { farben } from '@/constants/farben';
 import { filtereBuecher, sortiereBuecher, type Sortierung } from '@/lib/bibliothek-logik';
-import { holeBuecher, holeEinstellung, setzeEinstellung, type BuchZeile } from '@/lib/datenbank';
+import { holeAlleFortschritte, holeBuecher, holeEinstellung, setzeEinstellung, type BuchZeile } from '@/lib/datenbank';
 import { ordnerEinlesen } from '@/lib/einlesen';
 import { waehleOrdner } from '@/lib/ordner';
 import { useFarben } from '@/lib/farben-kontext';
 import { usePlayer } from '@/lib/player-kontext';
+import { fortschrittAnteil } from '@/lib/player-logik';
 
 const ORDNER_SCHLUESSEL = 'ordner_uri';
 
@@ -23,6 +24,8 @@ export default function BibliothekScreen() {
   const f = useFarben();
   const router = useRouter();
   const [buecher, setBuecher] = useState<BuchZeile[]>([]);
+  // Gemerkte Stelle je Buch, für die Fortschrittsbalken.
+  const [fortschritte, setFortschritte] = useState<Record<number, number>>({});
   const [ordnerUri, setOrdnerUri] = useState<string | null>(null);
   const [suche, setSuche] = useState('');
   const [sucheOffen, setSucheOffen] = useState(false);
@@ -34,23 +37,29 @@ export default function BibliothekScreen() {
   const laden = useCallback(async () => {
     setBuecher(await holeBuecher(db));
     setOrdnerUri(await holeEinstellung(db, ORDNER_SCHLUESSEL));
+    setFortschritte(await holeAlleFortschritte(db));
   }, [db]);
 
-  // Beim ersten Anzeigen laden. "aktiv" verhindert Updates, wenn der Bildschirm schon weg ist.
-  useEffect(() => {
-    let aktiv = true;
-    (async () => {
-      const zeilen = await holeBuecher(db);
-      const uri = await holeEinstellung(db, ORDNER_SCHLUESSEL);
-      if (aktiv) {
-        setBuecher(zeilen);
-        setOrdnerUri(uri);
-      }
-    })();
-    return () => {
-      aktiv = false;
-    };
-  }, [db]);
+  // Jedes Mal laden, wenn die Bibliothek sichtbar wird. So stimmen die Balken nach dem Hören.
+  // "aktiv" verhindert Updates, wenn der Bildschirm schon weg ist.
+  useFocusEffect(
+    useCallback(() => {
+      let aktiv = true;
+      (async () => {
+        const zeilen = await holeBuecher(db);
+        const uri = await holeEinstellung(db, ORDNER_SCHLUESSEL);
+        const stand = await holeAlleFortschritte(db);
+        if (aktiv) {
+          setBuecher(zeilen);
+          setOrdnerUri(uri);
+          setFortschritte(stand);
+        }
+      })();
+      return () => {
+        aktiv = false;
+      };
+    }, [db]),
+  );
 
   const einlesen = useCallback(
     async (uri: string) => {
@@ -177,6 +186,7 @@ export default function BibliothekScreen() {
         renderItem={({ item }) => (
           <BuchKachel
             buch={item}
+            anteil={fortschrittAnteil(fortschritte[item.id] ?? 0, item.dauer_sek ?? 0)}
             onPress={() => {
               // Tippen startet das Buch und öffnet den Player.
               oeffneBuch(item).then(() => router.push('/player'));

@@ -1,6 +1,13 @@
 # Plan Schritt 4: Hintergrund, Sperrbildschirm und Benachrichtigung
 
-Stand: 2026-11-18 · **Status: zurückgenommen. Die Hintergrund-Wiedergabe braucht einen neuen Build. Umsetzung erst danach.**
+Stand: 2026-11-18 · **Status: Umgesetzt im Code (2026-11-20), noch nicht auf dem Handy getestet. Braucht einen neuen Development Build.**
+
+## Umsetzung (2026-11-20)
+
+- `app.json`: `RECORD_AUDIO` entfernt, Plugin mit `recordAudioAndroid: false` und `enableBackgroundPlayback: true`.
+- `player-kontext.tsx`: `setAudioModeAsync` mit `shouldPlayInBackground: true` und `interruptionMode: 'doNotMix'` beim Start. Der Sperrbildschirm wird aktiviert, sobald ein Buch geladen ist. Bei jedem Kapitelwechsel und jeder Spulzeit-Änderung wird er neu gesetzt (statt `updateLockScreenMetadata`, damit nur ein Effekt nötig ist).
+- `player-logik.ts`: reine Funktionen `sperrbildschirmDaten` und `sperrbildschirmOptionen`, getestet in `tests/player-logik.test.mts`.
+- Offen: Test auf dem Handy (Bildschirm aus, andere App, Benachrichtigung, Anruf) mit neuem Build. Erst danach Commit.
 
 ## Erfahrungen (2026-11-18)
 

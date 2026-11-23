@@ -13,6 +13,7 @@ import {
   SPRUNG_SEK,
   kapitelLaenge,
   formatiereSpulzeit,
+  sperrbildschirmDaten,
 } from '../src/lib/player-logik.ts';
 
 test('Spulen: 15 Sekunden vor und zurück', () => {
@@ -135,4 +136,16 @@ test('Spulzeit-Anzeige: Sekunden unter einer Minute, sonst Minuten', () => {
   assert.equal(formatiereSpulzeit(15), '15 s');
   assert.equal(formatiereSpulzeit(30), '30 s');
   assert.equal(formatiereSpulzeit(60), '1 min');
+});
+
+test('Sperrbildschirm: Kapitelname als Titel, Buchtitel als Künstler', () => {
+  const daten = sperrbildschirmDaten({ titel: 'Der Hobbit', cover_pfad: 'file:///c.jpg' }, 'Kapitel 3');
+  assert.deepEqual(daten, { title: 'Kapitel 3', artist: 'Der Hobbit', artworkUrl: 'file:///c.jpg' });
+});
+
+test('Sperrbildschirm: ohne Kapitel steht der Buchtitel im Titel, ohne Cover ohne artworkUrl', () => {
+  const daten = sperrbildschirmDaten({ titel: 'Der Hobbit', cover_pfad: null }, null);
+  assert.deepEqual(daten, { title: 'Der Hobbit', artist: 'Der Hobbit' });
+  assert.equal('artworkUrl' in daten, false);
+  assert.equal(sperrbildschirmDaten({ titel: 'X', cover_pfad: null }, '  ').title, 'X');
 });

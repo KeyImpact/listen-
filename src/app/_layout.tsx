@@ -35,6 +35,7 @@ export default function RootLayout() {
                 headerTintColor: farben.text,
                 headerBackVisible: false,
                 headerTitle: () => <HomeKnopf />,
+                headerLeft: () => <KapitelKnopf />,
                 headerTitleAlign: 'center',
                 headerRight: () => (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
@@ -42,6 +43,18 @@ export default function RootLayout() {
                     <ZahnradKnopf />
                   </View>
                 ),
+              }}
+            />
+            {/* Die Kapitelliste öffnet sich aus dem Player als Fenster von unten. */}
+            <Stack.Screen
+              name="kapitel"
+              options={{
+                presentation: 'modal',
+                headerShown: true,
+                title: 'Kapitel',
+                headerShadowVisible: false,
+                headerStyle: { backgroundColor: farben.hintergrund },
+                headerTintColor: farben.text,
               }}
             />
             <Stack.Screen
@@ -66,6 +79,16 @@ function HomeKnopf() {
   return (
     <Pressable hitSlop={12} accessibilityLabel="Home, zur Bibliothek" onPress={() => router.dismissAll()}>
       <Text style={{ color: farben.text, fontSize: 16, fontWeight: '600' }}>⌂ Home</Text>
+    </Pressable>
+  );
+}
+
+// Listen-Knopf links in der Player-Kopfleiste. Öffnet die Kapitelliste des laufenden Buches.
+function KapitelKnopf() {
+  const router = useRouter();
+  return (
+    <Pressable hitSlop={12} accessibilityLabel="Kapitelliste" onPress={() => router.push('/kapitel')}>
+      <Text style={{ color: farben.text, fontSize: 22 }}>☰</Text>
     </Pressable>
   );
 }
