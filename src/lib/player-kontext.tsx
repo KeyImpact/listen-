@@ -390,8 +390,16 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setLadeSpielen(!ausstehend.current.pausiert);
       return;
     }
-    if (aktuelles.current.spielt) void TrackPlayer.pause();
-    else void TrackPlayer.play();
+    // Wir fragen den Player selbst, ob er spielt. Ein gemerkter Wert kann veraltet sein und den Knopf stumm machen.
+    void (async () => {
+      try {
+        const { state } = await TrackPlayer.getPlaybackState();
+        if (state === State.Playing || state === State.Buffering) await TrackPlayer.pause();
+        else await TrackPlayer.play();
+      } catch (fehler) {
+        console.warn('Start/Stopp fehlgeschlagen:', fehler);
+      }
+    })();
   }, []);
 
   const spulen = useCallback(
