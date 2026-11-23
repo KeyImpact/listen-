@@ -25,6 +25,7 @@ import {
   STANDARD_SPRUNG_SEK,
 } from '@/lib/player-logik';
 import { ausblendLautstaerke, kapitelEndeFuer, verlaengern } from '@/lib/schlaf-logik';
+import { SCHLAF_STOPP_FLAG } from '@/lib/wiedergabe-dienst';
 
 // Die Spulzeiten für die beiden Knöpfe: „zurueck“ für −, „vor“ für +.
 export type SpulRichtung = 'zurueck' | 'vor';
@@ -593,7 +594,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           s.endetUm = null;
         }
         restSek = s.restMs / 1000;
-        fertig = s.restMs <= 0;
+        fertig = spielt && s.restMs <= 0;
         if (spielt) lautstaerkeAnwenden(s, ausblendLautstaerke(restSek));
         else lautstaerkeAnwenden(s, 1);
       } else if (s.modus === 'kapitel' && s.ziel !== null) {
@@ -607,7 +608,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
           }
         }
         const ziel = s.ziel ?? pos;
-        fertig = pos >= ziel - 0.3;
+        fertig = spielt && pos >= ziel - 0.3;
         if (spielt) lautstaerkeAnwenden(s, ausblendLautstaerke(ziel - pos));
         else lautstaerkeAnwenden(s, 1);
       }
@@ -619,13 +620,18 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
         s.restMs = 0;
         s.ziel = null;
         s.zielStart = null;
-        void TrackPlayer.pause()
-          .then(() => {
+        // Der Hintergrunddienst soll wissen, dass der Sleep-Timer gestoppt hat (für Smart Rewind). Deshalb das Zeichen zuerst.
+        void (async () => {
+          try {
+            await setzeEinstellung(db, SCHLAF_STOPP_FLAG, '1');
+            await TrackPlayer.pause();
             s.lautstaerke = 1;
-            return TrackPlayer.setVolume(1);
-          })
-          .catch(() => {});
-        void speichereStand();
+            await TrackPlayer.setVolume(1);
+          } catch {
+            // Fehler beim Stoppen: Die Wiedergabe bleibt, wie sie ist.
+          }
+          await speichereStand();
+        })();
         setSchlaf({ modus: 'aus', restSek: null });
         return;
       }
@@ -634,7 +640,7 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       setSchlaf((alt) => (alt.modus === neu.modus && alt.restSek === neu.restSek ? alt : neu));
     }, 500);
     return () => clearInterval(id);
-  }, [speichereStand]);
+  }, [db, speichereStand]);
 
   const wert = useMemo<PlayerWert>(
     () => ({
