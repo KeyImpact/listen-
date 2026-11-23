@@ -62,7 +62,6 @@ export default function RootLayout() {
             <Stack.Screen
               name="einstellungen-seite"
               options={{
-                presentation: 'card',
                 headerShown: true,
                 title: 'Einstellungen',
                 headerStyle: { backgroundColor: farben.flaeche },
