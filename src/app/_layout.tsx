@@ -1,10 +1,7 @@
-import { Stack, useRouter } from 'expo-router';
+import { Stack } from 'expo-router';
 import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
-import { Pressable, Text, View } from 'react-native';
 
-import { SchlafKopf } from '@/components/schlaf-kopf';
-import { TempoKopf } from '@/components/tempo-kopf';
 import { farben } from '@/constants/farben';
 import { schemaAnlegen } from '@/lib/datenbank';
 import { FarbenProvider } from '@/lib/farben-kontext';
@@ -24,30 +21,8 @@ export default function RootLayout() {
             }}
           >
             <Stack.Screen name="(tabs)" />
-            {/* Der Player öffnet sich als Fenster von unten. Die Kopfleiste hat Zurück links und das Zahnrad rechts. */}
-            <Stack.Screen
-              name="player"
-              options={{
-                presentation: 'modal',
-                headerShown: true,
-                title: '',
-                headerShadowVisible: false,
-                // Transparent: Der Hintergrund des Players (Cover, Verlauf) reicht bis ganz nach oben.
-                headerTransparent: true,
-                headerTintColor: farben.text,
-                headerBackVisible: false,
-                headerTitle: () => <HomeKnopf />,
-                headerLeft: () => <KapitelKnopf />,
-                headerTitleAlign: 'center',
-                headerRight: () => (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
-                    <SchlafKopf />
-                    <TempoKopf />
-                    <ZahnradKnopf />
-                  </View>
-                ),
-              }}
-            />
+            {/* Der Player öffnet sich als Fenster von unten. Kopfleiste und Hintergrund kommen aus src/app/player/_layout.tsx. */}
+            <Stack.Screen name="player" options={{ presentation: 'modal', headerShown: false }} />
             {/* Die Adresse aus der Benachrichtigung landet hier und leitet zum Player weiter. Keine Fenster-Darstellung. */}
             <Stack.Screen name="+not-found" options={{ presentation: 'card', headerShown: false }} />
             {/* Die Kapitelliste öffnet sich aus dem Player als Fenster von unten. */}
@@ -62,17 +37,7 @@ export default function RootLayout() {
                 headerTintColor: farben.text,
               }}
             />
-            <Stack.Screen
-              name="einstellungen-seite"
-              options={{
-                // Immer als normale Seite (Karte), auch wenn der Player als Fenster darunter liegt.
-                presentation: 'card',
-                headerShown: true,
-                title: 'Einstellungen',
-                headerStyle: { backgroundColor: farben.flaeche },
-                headerTintColor: farben.text,
-              }}
-            />
+            {/* Die Unterseiten für den Reiter „Einstellungen“ (ohne Player). Im Player gibt es eigene Seiten unter /player/. */}
             <Stack.Screen
               name="balken-dicke"
               options={{
@@ -113,39 +78,5 @@ export default function RootLayout() {
         </PlayerProvider>
       </FarbenProvider>
     </SQLiteProvider>
-  );
-}
-
-// Home-Knopf in der Mitte der Player-Kopfleiste. Führt zurück zur Bibliothek (alle Fenster darüber schließen).
-function HomeKnopf() {
-  const router = useRouter();
-  return (
-    <Pressable hitSlop={12} accessibilityLabel="Home, zur Bibliothek" onPress={() => router.dismissAll()}>
-      <Text style={{ color: farben.text, fontSize: 16, fontWeight: '600' }}>⌂ Home</Text>
-    </Pressable>
-  );
-}
-
-// Listen-Knopf links in der Player-Kopfleiste. Öffnet die Kapitelliste des laufenden Buches.
-function KapitelKnopf() {
-  const router = useRouter();
-  return (
-    <Pressable hitSlop={12} accessibilityLabel="Kapitelliste" onPress={() => router.push('/kapitel')}>
-      <Text style={{ color: farben.text, fontSize: 22 }}>☰</Text>
-    </Pressable>
-  );
-}
-
-// Zahnrad rechts in der Player-Kopfleiste. Öffnet die Einstellungen.
-function ZahnradKnopf() {
-  const router = useRouter();
-  return (
-    <Pressable
-      hitSlop={12}
-      accessibilityLabel="Einstellungen"
-      onPress={() => router.push('/einstellungen-seite')}
-    >
-      <Text style={{ color: farben.text, fontSize: 22 }}>⚙</Text>
-    </Pressable>
   );
 }

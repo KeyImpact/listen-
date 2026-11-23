@@ -2,17 +2,19 @@ import { useRouter } from 'expo-router';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
 import { AKZENTE } from '@/constants/farben';
-import { useFarben, useAkzentWahl, useStile, type Palette } from '@/lib/farben-kontext';
+import { useAkzentWahl, type Palette } from '@/lib/farben-kontext';
+import { einstellungenPfad } from '@/lib/einstellungen-ort';
+import { useEinstellungenOrt, useOrtStile } from '@/lib/einstellungen-ort-kontext';
 import { usePlayer } from '@/lib/player-kontext';
 import { HINTERGRUND_NAMEN } from '@/lib/cover-thema-logik';
 import { BALKEN_DICKEN } from '@/lib/player-logik';
 
-// Der Inhalt der Einstellungen. Wird im Reiter „Einstellungen“ und auf der Seite über das Zahnrad gezeigt.
-// Ein Abschnitt „Anpassen“ mit drei gleich aussehenden Zeilen. Jede führt zu einer eigenen Seite.
+// Der Inhalt der Einstellungen. Wird im Reiter „Einstellungen“ und im Player (über das Zahnrad) gezeigt.
+// Ein Abschnitt „Anpassen“ mit vier gleich aussehenden Zeilen. Jede führt zu einer eigenen Seite.
 export function EinstellungenInhalt() {
-  const f = useFarben();
   const router = useRouter();
-  const styles = useStile(gibStile);
+  const ort = useEinstellungenOrt();
+  const styles = useOrtStile(gibStile);
   const { akzentSchluessel } = useAkzentWahl();
   const { balkenWahl, hintergrund } = usePlayer();
 
@@ -24,7 +26,7 @@ export function EinstellungenInhalt() {
     <Pressable
       key={name}
       style={[styles.zeile, trenner && styles.zeileTrenner]}
-      onPress={() => router.push(ziel as never)}
+      onPress={() => router.push(einstellungenPfad(ort, ziel) as never)}
       accessibilityRole="button"
       accessibilityLabel={name}
     >
@@ -35,7 +37,7 @@ export function EinstellungenInhalt() {
   );
 
   return (
-    <View style={[styles.behaelter, { backgroundColor: f.hintergrund }]}>
+    <View style={styles.behaelter}>
       <Text style={styles.abschnitt}>Anpassen</Text>
 
       <View style={styles.liste}>
@@ -52,6 +54,7 @@ function gibStile(f: Palette) {
   return StyleSheet.create({
     behaelter: {
       flex: 1,
+      backgroundColor: f.hintergrund,
       paddingHorizontal: 16,
       paddingTop: 16,
       gap: 8,

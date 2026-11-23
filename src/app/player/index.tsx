@@ -1,18 +1,15 @@
 import { useState } from 'react';
 import { Image } from 'expo-image';
 import { useRouter } from 'expo-router';
-import { useHeaderHeight } from 'expo-router/react-navigation';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 
-import { PlayerHintergrund } from '@/components/player-hintergrund';
 import { StartStoppKnopf } from '@/components/start-stopp-knopf';
-import { useCoverFarben } from '@/lib/cover-thema';
 import { useStile, type Palette } from '@/lib/farben-kontext';
 import { usePlayer } from '@/lib/player-kontext';
 import { formatiereSpulzeit, formatiereZeit, fortschrittAnteil } from '@/lib/player-logik';
 
 // Der Player-Bildschirm: Gesamt-Fortschritt, Thumbnail, darunter Kapitel, Zeitstrahl des Kapitels und die Knöpfe.
-// Die Kopfleiste mit Zurück und Zahnrad kommt aus dem Layout (src/app/_layout.tsx).
+// Kopfleiste und Hintergrund kommen aus dem gemeinsamen Rahmen (src/app/player/_layout.tsx).
 export default function PlayerScreen() {
   const router = useRouter();
   const styles = useStile(gibStile);
@@ -34,15 +31,9 @@ export default function PlayerScreen() {
   } = usePlayer();
   const [balkenBreite, setBalkenBreite] = useState(0);
   const [zeigeZeit, setZeigeZeit] = useState(false);
-  const hintergrund = usePlayer().hintergrund;
-  const coverUri = buch?.cover_pfad ?? null;
-  const farben = useCoverFarben(hintergrund === 'off' ? null : coverUri);
-  // Die Kopfleiste ist transparent und liegt über dem Inhalt. Darum rückt der Inhalt um ihre Höhe nach unten.
-  const kopfHoehe = useHeaderHeight();
-
   if (!buch) {
     return (
-      <View style={[styles.behaelter, { paddingTop: kopfHoehe + 12 }]}>
+      <View style={styles.behaelter}>
         <Text style={styles.leer}>Noch kein Buch gewählt. Tippe in der Bibliothek auf ein Buch.</Text>
         <Pressable style={styles.textKnopf} onPress={() => router.back()}>
           <Text style={styles.textKnopfText}>Zurück</Text>
@@ -59,9 +50,7 @@ export default function PlayerScreen() {
   const gesamtProzent = Math.round(fortschrittAnteil(position, dauer) * 100);
 
   return (
-    <View style={[styles.behaelter, { paddingTop: kopfHoehe + 12 }]}>
-      {/* Der Hintergrund liegt ganz unten, alles andere steht darüber. */}
-      <PlayerHintergrund coverUri={coverUri} farben={farben} />
+    <View style={styles.behaelter}>
       {/* Ein Tipp auf die Leiste oder die Zahl wechselt zwischen Prozent und Zeit. */}
       <Pressable style={styles.gesamt} onPress={() => setZeigeZeit(!zeigeZeit)}>
         {zeigeZeit ? <Text style={styles.gesamtZeit}>{formatiereZeit(position)}</Text> : null}
@@ -162,8 +151,8 @@ export default function PlayerScreen() {
 function gibStile(f: Palette) {
   return StyleSheet.create({
     behaelter: {
+      // Kein Hintergrund: Der Cover-Hintergrund kommt aus dem Rahmen darüber.
       flex: 1,
-      backgroundColor: f.hintergrund,
       paddingHorizontal: 16,
       paddingTop: 12,
       paddingBottom: 40,
