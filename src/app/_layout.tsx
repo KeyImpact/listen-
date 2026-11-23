@@ -3,6 +3,7 @@ import { SQLiteProvider } from 'expo-sqlite';
 import { StatusBar } from 'expo-status-bar';
 import { Pressable, Text, View } from 'react-native';
 
+import { SchlafKopf } from '@/components/schlaf-kopf';
 import { TempoKopf } from '@/components/tempo-kopf';
 import { farben } from '@/constants/farben';
 import { schemaAnlegen } from '@/lib/datenbank';
@@ -39,6 +40,7 @@ export default function RootLayout() {
                 headerTitleAlign: 'center',
                 headerRight: () => (
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 18 }}>
+                    <SchlafKopf />
                     <TempoKopf />
                     <ZahnradKnopf />
                   </View>

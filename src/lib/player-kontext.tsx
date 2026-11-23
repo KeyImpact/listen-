@@ -24,6 +24,7 @@ import {
   spulePosition,
   STANDARD_SPRUNG_SEK,
 } from '@/lib/player-logik';
+import { ausblendLautstaerke, kapitelEndeFuer, verlaengern } from '@/lib/schlaf-logik';
 
 // Die Spulzeiten für die beiden Knöpfe: „zurueck“ für −, „vor“ für +.
 export type SpulRichtung = 'zurueck' | 'vor';
@@ -90,6 +91,11 @@ interface PlayerWert {
   balkenWahl: string;
   balkenDicke: number;
   setzeBalkenDicke: (schluessel: string) => void;
+  // Sleep-Timer: Anzeige, Start (Minuten oder 'kapitel', null = aus) und Verlängern um Minuten.
+  schlaf: SchlafAnzeige;
+  hatKapitel: boolean;
+  setzeSchlaf: (wahl: number | 'kapitel' | null) => void;
+  verlaengereSchlaf: (minuten: number) => void;
 }
 
 // Knöpfe, die Sperrbildschirm und Benachrichtigung zeigen. Vor und Zurück springen um die Spulzeit.
@@ -130,7 +136,22 @@ function metadatenFuer(buch: BuchZeile, kapitelTitel: string | null) {
   return { title: daten.title, artist: daten.artist, artwork: daten.artworkUrl };
 }
 
+// Der Sleep-Timer: aus, nach einer Dauer oder bis zum Kapitelende. restSek gibt es nur bei einer Dauer.
+export type SchlafModus = 'aus' | 'dauer' | 'kapitel';
+export interface SchlafAnzeige {
+  modus: SchlafModus;
+  restSek: number | null;
+}
+
 const PlayerKontext = createContext<PlayerWert | null>(null);
+
+// Setzt die Lautstärke des Players nur, wenn sie sich merklich ändert. Stufen von 0,05 reichen für ein sanftes Ausblenden.
+function lautstaerkeAnwenden(merker: { lautstaerke: number }, wert: number) {
+  const gerundet = Math.round(wert * 20) / 20;
+  if (merker.lautstaerke === gerundet) return;
+  merker.lautstaerke = gerundet;
+  TrackPlayer.setVolume(gerundet).catch(() => {});
+}
 
 export function PlayerProvider({ children }: { children: ReactNode }) {
   const db = useSQLiteContext();
@@ -489,6 +510,132 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
     [kapitel, effektivPosition],
   );
 
+  // ---- Sleep-Timer ----
+  // Die Werte, die der Tick alle halbe Sekunde prüft. Ein Ref, damit der Tick immer den neuesten Stand sieht.
+  const schlafRef = useRef({
+    modus: 'aus' as SchlafModus,
+    restMs: 0,
+    endetUm: null as number | null,
+    ziel: null as number | null,
+    zielStart: null as number | null,
+    lautstaerke: 1,
+  });
+  const kapitelRef = useRef(kapitel);
+  useEffect(() => {
+    kapitelRef.current = kapitel;
+  }, [kapitel]);
+  const [schlaf, setSchlaf] = useState<SchlafAnzeige>({ modus: 'aus', restSek: null });
+
+  const setzeSchlaf = useCallback((wahl: number | 'kapitel' | null) => {
+    const s = schlafRef.current;
+    const jetzt = Date.now();
+    if (wahl === null) {
+      s.modus = 'aus';
+      s.endetUm = null;
+      s.restMs = 0;
+      s.ziel = null;
+      s.zielStart = null;
+      lautstaerkeAnwenden(s, 1);
+      setSchlaf({ modus: 'aus', restSek: null });
+      return;
+    }
+    if (wahl === 'kapitel') {
+      const pos = aktuelles.current.position;
+      const kap = aktuellesKapitel(kapitelRef.current, pos);
+      const ende = kapitelEndeFuer(kapitelRef.current, pos);
+      if (!kap || !ende) return;
+      s.modus = 'kapitel';
+      s.ziel = ende.ende;
+      s.zielStart = kap.start_sek;
+      s.endetUm = null;
+      s.restMs = 0;
+      setSchlaf({ modus: 'kapitel', restSek: null });
+      return;
+    }
+    // Die Dauer läuft nur, während gespielt wird. Läuft sie gerade, beginnt sie jetzt.
+    s.modus = 'dauer';
+    s.restMs = wahl * 60_000;
+    s.endetUm = aktuelles.current.spielt ? jetzt + s.restMs : null;
+    setSchlaf({ modus: 'dauer', restSek: Math.ceil(s.restMs / 1000) });
+  }, []);
+
+  const verlaengereSchlaf = useCallback((minuten: number) => {
+    const s = schlafRef.current;
+    if (s.modus !== 'dauer') return;
+    const jetzt = Date.now();
+    const restSek = s.endetUm !== null ? (s.endetUm - jetzt) / 1000 : s.restMs / 1000;
+    s.restMs = verlaengern(Math.max(0, restSek), minuten) * 1000;
+    if (s.endetUm !== null) s.endetUm = jetzt + s.restMs;
+    setSchlaf({ modus: 'dauer', restSek: Math.ceil(s.restMs / 1000) });
+  }, []);
+
+  // Der Tick prüft alle halbe Sekunde: Restzeit, Kapitelende, Ausblenden.
+  useEffect(() => {
+    const id = setInterval(() => {
+      const s = schlafRef.current;
+      if (s.modus === 'aus') {
+        lautstaerkeAnwenden(s, 1);
+        return;
+      }
+      const jetzt = Date.now();
+      const spielt = aktuelles.current.spielt;
+      const pos = aktuelles.current.position;
+      let fertig = false;
+      let restSek: number | null = null;
+
+      if (s.modus === 'dauer') {
+        // Läuft die Wiedergabe, zählt die Uhr. Bei Pause friert die Restzeit ein.
+        if (spielt) {
+          if (s.endetUm === null) s.endetUm = jetzt + s.restMs;
+          s.restMs = s.endetUm - jetzt;
+        } else if (s.endetUm !== null) {
+          s.restMs = s.endetUm - jetzt;
+          s.endetUm = null;
+        }
+        restSek = s.restMs / 1000;
+        fertig = s.restMs <= 0;
+        if (spielt) lautstaerkeAnwenden(s, ausblendLautstaerke(restSek));
+        else lautstaerkeAnwenden(s, 1);
+      } else if (s.modus === 'kapitel' && s.ziel !== null) {
+        // Springt der Nutzer in ein anderes Kapitel, gilt das Ende des neuen Kapitels.
+        const kap = aktuellesKapitel(kapitelRef.current, pos);
+        if (kap && kap.start_sek !== s.zielStart) {
+          const neu = kapitelEndeFuer(kapitelRef.current, pos);
+          if (neu) {
+            s.ziel = neu.ende;
+            s.zielStart = kap.start_sek;
+          }
+        }
+        const ziel = s.ziel ?? pos;
+        fertig = pos >= ziel - 0.3;
+        if (spielt) lautstaerkeAnwenden(s, ausblendLautstaerke(ziel - pos));
+        else lautstaerkeAnwenden(s, 1);
+      }
+
+      if (fertig) {
+        // Erst pausieren, dann die Lautstärke wieder auf 1 setzen. So blitzt nichts laut auf.
+        s.modus = 'aus';
+        s.endetUm = null;
+        s.restMs = 0;
+        s.ziel = null;
+        s.zielStart = null;
+        void TrackPlayer.pause()
+          .then(() => {
+            s.lautstaerke = 1;
+            return TrackPlayer.setVolume(1);
+          })
+          .catch(() => {});
+        void speichereStand();
+        setSchlaf({ modus: 'aus', restSek: null });
+        return;
+      }
+
+      const neu: SchlafAnzeige = s.modus === 'dauer' ? { modus: 'dauer', restSek } : { modus: 'kapitel', restSek: null };
+      setSchlaf((alt) => (alt.modus === neu.modus && alt.restSek === neu.restSek ? alt : neu));
+    }, 500);
+    return () => clearInterval(id);
+  }, [speichereStand]);
+
   const wert = useMemo<PlayerWert>(
     () => ({
       buch,
@@ -513,8 +660,12 @@ export function PlayerProvider({ children }: { children: ReactNode }) {
       balkenWahl,
       balkenDicke: balkenDickeFuer(balkenWahl),
       setzeBalkenDicke,
+      schlaf,
+      hatKapitel: kapitel.length > 0,
+      setzeSchlaf,
+      verlaengereSchlaf,
     }),
-    [buch, abschnitt, effektivPosition, gesamtDauer, spielt, ladeSpielen, tempo, oeffneBuch, umschalten, spulen, springeInAbschnitt, springeZu, kapitelSprung, tempoSetzen, spulzeiten, setzeSpulzeit, aussenAktiv, setzeAussenAktiv, aussenSek, setzeAussenSek, balkenWahl, setzeBalkenDicke],
+    [buch, abschnitt, effektivPosition, gesamtDauer, spielt, ladeSpielen, tempo, oeffneBuch, umschalten, spulen, springeInAbschnitt, springeZu, kapitelSprung, tempoSetzen, spulzeiten, setzeSpulzeit, aussenAktiv, setzeAussenAktiv, aussenSek, setzeAussenSek, balkenWahl, setzeBalkenDicke, schlaf, kapitel, setzeSchlaf, verlaengereSchlaf],
   );
 
   return <PlayerKontext.Provider value={wert}>{children}</PlayerKontext.Provider>;
